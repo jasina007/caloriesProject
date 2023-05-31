@@ -52,12 +52,17 @@ def convertLbToKg(lbValue):
 def convertMphToKmh(mphValue):
     return 1.609344 * mphValue
 
+def convertMinMaxEqToKmh(minSpeedMph, maxSpeedMph, eqSpeedMph):
+    return convertMphToKmh(minSpeedMph), convertMphToKmh(maxSpeedMph), convertMphToKmh(eqSpeedMph)
+
+
 #method which returns the first number from a string(both int and float) 
 def takeFirstNumberFromString(string):
     listResult = takeAllNumbersFromString(string)
     if listResult:
         return listResult[0]
     return None
+
 
 def takeAllNumbersFromString(string):
     searched = re.findall(r'\d*\.?\d+', string)
@@ -73,13 +78,15 @@ def takeAllNumbersFromString(string):
         return listOfNumbers
     return None
     
+    
 #returns how many numbers are in a string
 def findHowManyNumbersAreInString(string):
     howMany = re.findall(r'\d*\.?\d+', string)
     return howMany.__len__()
 
+
 #all calories in every row in exercise_dataset.csv are in linear connection
-#for this reason I count a slope of linear function with linear regression
+#for this reason, I count a slope of linear function with linear regression
 def caloriesLinearRegression(valuesFromSmallestToGreatest):
     firstLb = convertLbToKg(130)
     secondLb = convertLbToKg(155)
@@ -102,6 +109,33 @@ def makeListOfStringsToString(listOfStrings):
         stringResult += f"{string} "
     return stringResult
 
+#method to define speeds
+def getMinMaxEqSpeedInRow(nameAndTypeActivity):
+    minSpeedMph = None
+    maxSpeedMph = None
+    eqSpeedMph = None
+    
+    if nameAndTypeActivity.__contains__('mph'):
+        if nameAndTypeActivity.__contains__( '(' ):
+            eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
+        else:
+            howManyNumbers = findHowManyNumbersAreInString(nameAndTypeActivity)
+            match howManyNumbers:
+                case 1:
+                    if nameAndTypeActivity.__contains__('<') or nameAndTypeActivity.__contains__('under'):
+                        maxSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
+                    elif nameAndTypeActivity.__contains__('>') or nameAndTypeActivity.__contains__('over'):
+                        minSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
+                    else:
+                        eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
+                case 2:
+                    minSpeedMph,maxSpeedMph = takeAllNumbersFromString(nameAndTypeActivity)
+                case _:
+                    raise ValueError("Incorrect format of a row with speed values")
+                                
+    return minSpeedMph, maxSpeedMph, eqSpeedMph
+
+
 def loadActivitiesData():
     activitiesDict = dict()
     #getting all data about sport activities from opened file
@@ -110,86 +144,53 @@ def loadActivitiesData():
         for row in activitiesFile:
             try:
                 if row.__contains__('"'):
-                    minSpeedMph = None
-                    eqSpeedMph = None
-                    maxSpeedMph = None
                     splittedQuote = re.split('"', row)
                     nameAndTypeActivity = splittedQuote[1]
                     
-                    if nameAndTypeActivity.__contains__('mph'):
-                        if nameAndTypeActivity.__contains__( '(' ):
-                            eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                        else:
-                            howManyNumbers = findHowManyNumbersAreInString(nameAndTypeActivity)
-                            match howManyNumbers:
-                                case 1:
-                                    if nameAndTypeActivity.__contains__('<') or nameAndTypeActivity.__contains__('under'):
-                                        maxSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                    elif nameAndTypeActivity.__contains__('>') or nameAndTypeActivity.__contains__('over'):
-                                        minSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                    else:
-                                        eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                case 2:
-                                    minSpeedMph,maxSpeedMph = takeAllNumbersFromString(nameAndTypeActivity)
-                                case _:
-                                    raise ValueError("Incorrect format of a row with speed values")
-                                
-                    splittedTypeActivity = re.split(',', nameAndTypeActivity)
-                    activityName = splittedTypeActivity[0]
+                    minSpeedMph, maxSpeedMph, eqSpeedMph = getMinMaxEqSpeedInRow(nameAndTypeActivity)            
+                    
                     
                     #when the first word inside a quote contains a 'mph'
-                    if activityName.__contains__('mph'):
-                        splittedActivityName = activityName.split()
-                        activityName = str(splittedActivityName[0])
-                    
-                    activityPace = splittedTypeActivity[1]
+                    if nameAndTypeActivity.__contains__('mph'):
+                        splittedTypeActivity = re.split(',', nameAndTypeActivity)
+                        activityName = splittedTypeActivity[0]
+                        #splittedActivityName = activityName.split()
+                        #activityName = str(splittedActivityName[0])
+                    else:
+                        activityName = nameAndTypeActivity
+                        
                     caloriesAmounts = splittedQuote[2]
                     
                 else:
                     splittedRowByComma = re.split(',', row)
                     nameAndTypeActivity = splittedRowByComma[0]
-                    if nameAndTypeActivity.__contains__('mph'):
-                        if nameAndTypeActivity.__contains__( '(' ):
-                            eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                        else:
-                            howManyNumbers = findHowManyNumbersAreInString(nameAndTypeActivity)
-                            match howManyNumbers:
-                                case 1:
-                                    if nameAndTypeActivity.__contains__('<') or nameAndTypeActivity.__contains__('under'):
-                                        maxSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                    elif nameAndTypeActivity.__contains__('>') or nameAndTypeActivity.__contains__('over'):
-                                        minSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                    else:
-                                        eqSpeedMph = takeFirstNumberFromString(nameAndTypeActivity)
-                                case 2:
-                                    minSpeedMph,maxSpeedMph = takeAllNumbersFromString(nameAndTypeActivity)
-                                case _:
-                                    raise ValueError("Incorrect format of a row with speed values")
+                    minSpeedMph, maxSpeedMph, eqSpeedMph = getMinMaxEqSpeedInRow(nameAndTypeActivity)
                                 
-                    splittedTypeActivity = re.split(' ', nameAndTypeActivity)
-                    activityName = makeListOfStringsToString(splittedTypeActivity)
-                    activityPace = None
                     caloriesAmounts = splittedRowByComma[1:]
                     
                     #when the first word inside a quote contains a 'mph'
-                    if activityName.__contains__('mph'):
-                        splittedActivityName = activityName.split()
-                        activityName = str(splittedActivityName[0])
+                    if nameAndTypeActivity.__contains__('mph'):
+                        splittedTypeActivity = re.split(' ', nameAndTypeActivity)
+                        activityName = makeListOfStringsToString(splittedTypeActivity)
+                        #splittedActivityName = activityName.split()
+                        #activityName = str(splittedActivityName[0])
+                    else:
+                        activityName = nameAndTypeActivity
                     
                 arguments = takeAllNumbersFromString(str(caloriesAmounts))[:-1]
                 slope = float(caloriesLinearRegression(convert1DListTo2D(arguments)))          
 
+                #minSpeedMph, maxSpeedMph, eqSpeedMph = convertMinMaxEqToKmh(minSpeedMph, maxSpeedMph, eqSpeedMph)
+                
                 if activityName in activitiesDict:
                     if row.__contains__('mph'):
-                        activitiesDict[activityName].append([(activityPace, minSpeedMph, maxSpeedMph, eqSpeedMph, slope)])
-                    else:
-                        activitiesDict[activityName].append([(activityPace, slope)])
-                 
+                        activitiesDict[activityName].append([(minSpeedMph, maxSpeedMph, eqSpeedMph, slope)])
                 else:   
                     if row.__contains__('mph'):
-                        activitiesDict.update({activityName: [(activityPace, minSpeedMph, maxSpeedMph, eqSpeedMph, slope)]})
+                        activitiesDict.update({activityName: [(minSpeedMph, maxSpeedMph, eqSpeedMph, slope)]})
                     else:
-                        activitiesDict.update({activityName: [(activityPace, slope)]})
+                        activitiesDict.update({activityName: [(slope)]})
+                        
             except TypeError:
                 print(f"Sth wrong in row: {row}")        
     return activitiesDict
