@@ -45,6 +45,7 @@ def loadCaloriesData():
             caloriesList.append((nameFood, typeFood, caloriesAmount, kilojoulesAmount, unit))
     return caloriesList #returning a created list of tuples
 
+#below functions are a part of 'loadActivitiesData()' (to avoid repeating the same code and improve the readiness)
 
 def convertLbToKg(lbValue):
     return 0.45359237 * lbValue
@@ -52,8 +53,15 @@ def convertLbToKg(lbValue):
 def convertMphToKmh(mphValue):
     return 1.609344 * mphValue
 
+
 def convertMinMaxEqToKmh(minSpeedMph, maxSpeedMph, eqSpeedMph):
-    return convertMphToKmh(minSpeedMph), convertMphToKmh(maxSpeedMph), convertMphToKmh(eqSpeedMph)
+    if not minSpeedMph == None:
+        minSpeedMph = convertMphToKmh(float(minSpeedMph))
+    if not maxSpeedMph == None:
+        maxSpeedMph = convertMphToKmh(float(maxSpeedMph))
+    if not eqSpeedMph == None:
+        eqSpeedMph = convertMphToKmh(float(eqSpeedMph))
+    return minSpeedMph, maxSpeedMph, eqSpeedMph
 
 
 #method which returns the first number from a string(both int and float) 
@@ -107,7 +115,7 @@ def makeListOfStringsToString(listOfStrings):
     stringResult = ""
     for string in listOfStrings:
         stringResult += f"{string} "
-    return stringResult
+    return stringResult[:-1] #removing the last character(space)
 
 #method to define speeds
 def getMinMaxEqSpeedInRow(nameAndTypeActivity):
@@ -142,20 +150,21 @@ def loadActivitiesData():
     with open('exercise_dataset.csv', 'r') as activitiesFile:
         next(activitiesFile) #skipping the first row(because there are names of columns)  
         for row in activitiesFile:
-            try:
+            #try:
                 if row.__contains__('"'):
                     splittedQuote = re.split('"', row)
                     nameAndTypeActivity = splittedQuote[1]
                     
                     minSpeedMph, maxSpeedMph, eqSpeedMph = getMinMaxEqSpeedInRow(nameAndTypeActivity)            
                     
-                    
                     #when the first word inside a quote contains a 'mph'
                     if nameAndTypeActivity.__contains__('mph'):
                         splittedTypeActivity = re.split(',', nameAndTypeActivity)
-                        activityName = splittedTypeActivity[0]
-                        #splittedActivityName = activityName.split()
-                        #activityName = str(splittedActivityName[0])
+                        if splittedTypeActivity[0].__contains__('mph'):
+                            splittedActivityName = splittedTypeActivity[0].split()
+                            activityName = makeListOfStringsToString(splittedActivityName[:-2])
+                        else:
+                            activityName = splittedTypeActivity[0]
                     else:
                         activityName = nameAndTypeActivity
                         
@@ -170,17 +179,15 @@ def loadActivitiesData():
                     
                     #when the first word inside a quote contains a 'mph'
                     if nameAndTypeActivity.__contains__('mph'):
-                        splittedTypeActivity = re.split(' ', nameAndTypeActivity)
-                        activityName = makeListOfStringsToString(splittedTypeActivity)
-                        #splittedActivityName = activityName.split()
-                        #activityName = str(splittedActivityName[0])
+                        splittedTypeActivity = nameAndTypeActivity.split()
+                        activityName = makeListOfStringsToString(splittedTypeActivity[:-2])
                     else:
                         activityName = nameAndTypeActivity
                     
                 arguments = takeAllNumbersFromString(str(caloriesAmounts))[:-1]
                 slope = float(caloriesLinearRegression(convert1DListTo2D(arguments)))          
 
-                #minSpeedMph, maxSpeedMph, eqSpeedMph = convertMinMaxEqToKmh(minSpeedMph, maxSpeedMph, eqSpeedMph)
+                minSpeedMph, maxSpeedMph, eqSpeedMph = convertMinMaxEqToKmh(minSpeedMph, maxSpeedMph, eqSpeedMph)
                 
                 if activityName in activitiesDict:
                     if row.__contains__('mph'):
@@ -190,9 +197,7 @@ def loadActivitiesData():
                         activitiesDict.update({activityName: [(minSpeedMph, maxSpeedMph, eqSpeedMph, slope)]})
                     else:
                         activitiesDict.update({activityName: [(slope)]})
-                        
-            except TypeError:
-                print(f"Sth wrong in row: {row}")        
+                           
     return activitiesDict
 
 if __name__ == '__main__':
