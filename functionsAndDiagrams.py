@@ -1,6 +1,8 @@
 #in this file are methods creating diagrams and counting bmr and getting strings
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
+import json, os
 
 def countBMR(sex, weight, height, age):
     match sex:
@@ -107,6 +109,75 @@ def getSlopeFromCorrectSpeedInterval(listTupleSpeeds, speedKmh):
         return sortedListSpeeds[currentIndex-1][-1]
         
 
+#save today's amount of calories to a file
+#  there are 4 options: file doesn't exist[a]; file is empty(user deleted all data)[b]; 
+#  file has previous dates, but not today's[c]; in a file is today's date(we want to overwrite item with current date)[d]
+def saveTodayCaloriesToFile(caloriesTotalAmount):
+    todayDateStr = str(datetime.now().date())
+    fileName = 'dailyCalories.json'
+
+    if os.path.exists(fileName) and os.path.getsize(fileName) > 0:
+        with open(fileName, 'r') as fileRead:
+            caloriesDict = json.load(fileRead)
+        
+        #[d] situation
+        if todayDateStr in caloriesDict.keys():
+            caloriesDict[todayDateStr] = caloriesTotalAmount
+        else: #[c] situation
+            caloriesDict.update({todayDateStr: caloriesTotalAmount})
+    else: #[a] ; [b]
+        caloriesDict = {todayDateStr: caloriesTotalAmount}
+    
+    #save updated dictionary to a file
+    with open(fileName, 'w') as fileWrite:
+        json.dump(caloriesDict, fileWrite)
+
+
+def loadDailyCaloriesFromFile():
+    fileName = 'dailyCalories.json'
+    
+    #check if a file exists and is not empty
+    if os.path.exists(fileName) and os.path.getsize(fileName) > 0:
+        with open(fileName, 'r') as fileRead:
+            caloriesDict = json.load(fileRead)
+        return caloriesDict
+    return None
+    
+def barDiagramWithDailyCalories(bmr):
+    #loading data from JSON file
+    dailyCaloriesAmount = loadDailyCaloriesFromFile()
+    
+    #plot a diagram only if file exists and is not empty
+    if dailyCaloriesAmount is not None:
+        arguments = dailyCaloriesAmount.keys()
+        values = dailyCaloriesAmount.values()
+        
+        #plot the bar diagram
+        plt.bar(arguments, values, color='red', width=0.35)
+        #dashed line showes a BMR of user
+        plt.axhline(y=bmr, label='BMR',color='black', linestyle='dashed')
+        plt.legend() #to show what means a dashed line
+        plt.xlabel('Date')
+        plt.ylabel('Calories')
+        plt.title('Eaten calories per day')
+        plt.show()
+        
+        
+def loadOnlyTodayCalories():
+    fileName = 'dailyCalories.json'
+    
+    #load calories amount only if file exists and is not empty
+    if os.path.exists(fileName) and os.path.getsize(fileName) > 0:
+        with open(fileName, 'r') as fileRead:
+            caloriesDict = json.load(fileRead)
+        currentDateStr = str(datetime.now().date())
+        if currentDateStr in caloriesDict.keys():
+            return caloriesDict[currentDateStr]
+        
+    return None
+            
+
 if __name__ == '__main__':
-    dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
-    print(getSlopeFromCorrectSpeedInterval(dictActivities, 3.4))
+    '''dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
+    print(getSlopeFromCorrectSpeedInterval(dictActivities, 3.4))'''
+    saveTodayCaloriesToFile(2694)
