@@ -13,6 +13,10 @@ def countBMR(sex, weight, height, age):
         case _:
             return None
 
+
+def countCaloriesInFoodAmount(foodAmount, caloriesPer100gMl):
+    return foodAmount/100 * caloriesPer100gMl
+
 def percentCaloriesInBMR(caloriesAmount, bmr):
     return caloriesAmount/bmr * 100
 

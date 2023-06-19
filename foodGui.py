@@ -8,8 +8,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QComboBox, QGraphicsView, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMainWindow, QPushButton, QSizePolicy, QStatusBar,
-    QVBoxLayout, QWidget)
-import sys
+    QVBoxLayout, QWidget, QMessageBox)
+import sys, re
+from loadCalories import loadCaloriesData
+from functionsAndDiagrams import findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR
+from loadActivitiesFunctions import takeFirstNumberFromString
 
 class FoodMainWindow(QMainWindow):
     def __init__(self):
@@ -47,6 +50,7 @@ class FoodMainWindow(QMainWindow):
 
         #confirm data button
         self.confirmDataButton = self.createPushButton(QRect(150, 80, 91, 24), "Confirm data")
+        self.confirmDataButton.clicked.connect(self.loadFoodTypesAndSearch)
         
         
         #food list layout        
@@ -69,6 +73,12 @@ class FoodMainWindow(QMainWindow):
         #set status bar and central widget
         self.setCentralWidget(self.centralwidget)
         self.statusBarSetting()
+        
+        #loading food types from a 'calories.csv' file
+        try:
+            self.caloriesList = loadCaloriesData()
+        except FileNotFoundError:
+            self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
 
 
     #layout type with horizontal layout inside vertical layout
@@ -174,7 +184,6 @@ class FoodMainWindow(QMainWindow):
     
     def statusBarSetting(self):
         self.statusbar = QStatusBar()
-        self.statusbar.setObjectName(u"statusbar")
         self.setStatusBar(self.statusbar)
 
 
@@ -184,6 +193,59 @@ class FoodMainWindow(QMainWindow):
         self.sportActivityButton.setVisible(False)
         self.resetFoodButton.setVisible(False)
         self.dailyCaloriesLayoutWidget.setVisible(False)
+        
+        
+    def loadUserDataFromWidgets(self):
+        try:
+            self.sexData = self.sexComboBoxWidget.currentText().lower()
+            self.heightData = int(self.heightWidget.text())
+            self.weightData = int(self.weightWidget.text())
+            self.age = int(self.weightWidget.text())
+            self.enteredFood = self.foodWidget.text()
+            self.foodAmount = int(self.foodAmountWidget.text())
+            
+        except ValueError:
+            self.createAndPrintMessageBox("Incorrect number", "Please enter numbers in lines: height, weight, age, Food amount")
+        
+        
+    def loadFoodTypesAndSearch(self):
+        try:
+            self.foodListWidget.clear()
+            self.loadUserDataFromWidgets()
+            self.matchingFoods = findFoodNamesByString(self.caloriesList, self.enteredFood)
+            for item in self.matchingFoods:
+                self.foodListWidget.addItem(str(item))
+                
+            self.foodListWidget.itemClicked.connect(self.printBmrInfoAndPieChart)
+            self.foodListLayoutWidget.setVisible(True)
+
+        except FileNotFoundError:
+            self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
+
+        
+    def countBmrFunctions(self, item):
+        caloriesPer100gFromRow = takeFirstNumberFromString(item.text())
+        bmr = countBMR(self.sexData, self.weightData, self.heightData, self.age)
+        caloriesAmount = countCaloriesInFoodAmount(self.foodAmount, caloriesPer100gFromRow)
+        percentInBmr = percentCaloriesInBMR(caloriesAmount, bmr)
+        
+        self.countBmrFunctionLabel.setText(f"{bmr:.2f}")
+        self.countAmountCaloriesLabel.setText(f"{caloriesAmount:.2f}")
+        self.percentBmrFunctionLabel.setText(f"{percentInBmr:.2f}")
+        
+
+    def printBmrInfoAndPieChart(self, item):
+        self.countBmrFunctions(item)
+        self.bmrLayoutWidget.setVisible(True)
+    
+    
+    def createAndPrintMessageBox(self, windowTitle, text):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle(windowTitle)
+        msg_box.setText(text)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec()
+        
 
 
 app = QApplication(sys.argv)
