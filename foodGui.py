@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
@@ -6,13 +7,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QGraphicsView, QHBoxLayout,
-    QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QMainWindow, QPushButton, QSizePolicy, QStatusBar,
-    QVBoxLayout, QWidget, QMessageBox)
+from PySide6.QtWidgets import (QApplication, QComboBox, QGraphicsView, 
+                               QGraphicsScene, QHBoxLayout,QLabel, QLineEdit, 
+                               QListWidget, QListWidgetItem,QMainWindow, 
+                               QPushButton, QSizePolicy, QStatusBar,
+                                QVBoxLayout, QWidget, QMessageBox)
+from PySide6.QtCharts import QChart, QPieSeries, QChartView, QBarSeries, QBarSet, QBarCategoryAxis
 from loadCalories import loadCaloriesData
 from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR, 
-                                  loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow, pieChartWithCalories)
+                                  loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow,
+                                  loadDailyCaloriesFromFile)
 from loadActivitiesFunctions import takeFirstNumberFromString
 
 
@@ -59,7 +63,7 @@ class FoodMainWindow(QMainWindow):
         self.foodListLayout, self.foodListLayoutWidget, self.foodListWidget = self.createFoodListLayout()
 
         #BMR data layout
-        self.bmrLayout, self.bmrLayoutWidget, self.circleDiagramWidget, self.countBmrFunctionLabel, \
+        self.bmrLayout, self.bmrLayoutWidget, self.circleDiagramChartView, self.countBmrFunctionLabel, \
             self.countAmountCaloriesLabel, self.percentBmrFunctionLabel = self.createBmrInfoLayout()
 
         #bottom buttons
@@ -67,7 +71,7 @@ class FoodMainWindow(QMainWindow):
         self.resetFoodButton = self.createPushButton(QRect(30, 610, 111, 41), "Reset foods")
     
         #daily calories layout
-        self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramWidget = self.createDailyCalories()
+        self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramChartView = self.createDailyCalories()
         
         #deactivate most layouts at start of the app
         self.deactivateAtStart()
@@ -163,11 +167,11 @@ class FoodMainWindow(QMainWindow):
         caloriesInfoLayout.addLayout(percentHorizontalLayout)
         circleDiagramInfoLabel = QLabel(bmrLayoutWidget, text="Circle diagram with all entered food types:")
         caloriesInfoLayout.addWidget(circleDiagramInfoLabel)
-        circleDiagramWidget = QGraphicsView(bmrLayoutWidget)
-        caloriesInfoLayout.addWidget(circleDiagramWidget)
+        circleDiagramChartView = QChartView(bmrLayoutWidget)
+        caloriesInfoLayout.addWidget(circleDiagramChartView)
         bmrLayout.addLayout(caloriesInfoLayout)
         
-        return bmrLayout, bmrLayoutWidget, circleDiagramWidget, countBmrFunctionLabel, \
+        return bmrLayout, bmrLayoutWidget, circleDiagramChartView, countBmrFunctionLabel, \
             countAmountCaloriesLabel, percentBmrFunctionLabel
     
     
@@ -179,11 +183,11 @@ class FoodMainWindow(QMainWindow):
         barDiagramLayout = QVBoxLayout()
         barDiagramInfoLabel = QLabel(dailyCaloriesLayoutWidget, text="Daily consumed calories amount since last reset:")
         barDiagramLayout.addWidget(barDiagramInfoLabel)
-        barFoodDiagramWidget = QGraphicsView(dailyCaloriesLayoutWidget)
-        barDiagramLayout.addWidget(barFoodDiagramWidget)
+        barFoodDiagramChartView = QChartView(dailyCaloriesLayoutWidget)
+        barDiagramLayout.addWidget(barFoodDiagramChartView)
         dailyCaloriesLayout.addLayout(barDiagramLayout)
         
-        return dailyCaloriesLayout, dailyCaloriesLayoutWidget, barFoodDiagramWidget
+        return dailyCaloriesLayout, dailyCaloriesLayoutWidget, barFoodDiagramChartView
     
     
     def createPushButton(self, dimensions, text):
@@ -256,8 +260,70 @@ class FoodMainWindow(QMainWindow):
 
     def printBmrInfoAndPieChart(self, item):
         self.countBmrFunctions(item)
+        self.createPieChart()
         self.bmrLayoutWidget.setVisible(True)
+        self.createBarDiagram()
+        self.dailyCaloriesLayoutWidget.setVisible(True)
+        self.resetFoodButton.setVisible(True)
+        self.sportActivityButton.setVisible(True)
+        
+    def createPieChart(self):
+        
+        self.circleDiagramChartView.clearMask()
+        #taking calories amounts and food names from dictionary
+        caloriesAmounts = [percentCaloriesInBMR(amount, self.bmr) for amount in self.todayDifferentFoodsDict.values()]
+        foodNames = list(self.todayDifferentFoodsDict.keys())
+        
+        #check if the eaten food exceeds 100%
+        #if not, it will be showed in a pie chart
+        sumCalories = sum(caloriesAmounts)
+        if sumCalories < 100:
+            unEatenPercent = 100 - sumCalories
+            caloriesAmounts.append(unEatenPercent)
+            foodNames.append('Not eaten')
+        
+        pieChartSeries = QPieSeries(self.circleDiagramChartView)
+        
+        for food,calories in zip(foodNames,caloriesAmounts):
+            pieChartSeries.append(food, calories)
+            
+        pieChart = QChart()
+        pieChart.addSeries(pieChartSeries)
+        pieChart.setTitle("Calories amounts in every food eaten today")
+        pieChartView = QChartView(pieChart)
+        pieChartView.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.circleDiagramChartView.setChart(pieChart)
     
+    def createBarDiagram(self):
+        
+        self.barFoodDiagramChartView.clearMask()
+         #loading data from JSON file
+        dailyCaloriesAmount = loadDailyCaloriesFromFile()
+        
+        
+        #plot a diagram only if file exists and is not empty
+        if dailyCaloriesAmount is not None:
+            dailyCaloriesAmount[str(datetime.now().date())] = self.todayCaloriesAmount
+            arguments = list(dailyCaloriesAmount.keys())
+            values = list(dailyCaloriesAmount.values())
+            
+            barSeries = QBarSeries()
+            barSet = QBarSet("Dates")
+            barSet.append(values)
+            barSeries.append(barSet)
+            
+            barChart = QChart()
+            barChart.addSeries(barSeries)
+            barChart.setTitle("Daily calories amounts" )
+            
+            xLabels = QBarCategoryAxis()
+            xLabels.append(arguments)
+            barChart.setAxisX(xLabels, barSeries)
+            
+            barChartView = QChartView(barChart)
+            barChartView.setRenderHint(QPainter.RenderHint.Antialiasing)
+            self.barFoodDiagramChartView.setChart(barChart)
+            
     
     def closeEvent(self, event):
         yes = QMessageBox.StandardButton.Yes

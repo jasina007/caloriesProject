@@ -26,32 +26,6 @@ def getFoodNameFromRow(foodRow):
     return re.sub(r'[\(\'\']', '', splittedName)
 
 
-#structure of caloriesEaten: {name of food:caloriesAmount}
-def pieChartWithCalories(caloriesEaten, bmr):
-    #taking calories amounts and food names from dictionary
-    caloriesAmounts = [percentCaloriesInBMR(amount, bmr) for amount in caloriesEaten.values()]
-    foodNames = [caloriesEaten.keys()]
-
-    #check if the eaten food exceeds 100%
-    #if not, it will be showed in a pie chart
-    sumCalories = sum(caloriesAmounts)
-    if sumCalories < 100:
-        unEatenPercent = 100 - sumCalories
-        caloriesAmounts.append(unEatenPercent)
-        foodNames.append('Not eaten')
-
-    figure = plt.figure(figsize=(5,5))
-    pie_subplot = figure.add_subplot()
-    
-    #set colours on a pie chart
-    colours = sns.color_palette('bright')
-    
-    #set settings of a pie chart and percents to 2 decimal points
-    pie_subplot.pie(caloriesAmounts, labels=foodNames, colors=colours, autopct= '%.2f%%')
-    canvas = FigureCanvas(figure)
-    return canvas
-
-
 def findFoodNamesByString(listCalories, enteredString):
     listMatchingFoods = []
     
@@ -157,25 +131,6 @@ def loadDailyCaloriesFromFile():
         return caloriesDict
     return None
     
-def barDiagramWithDailyCalories(bmr):
-    #loading data from JSON file
-    dailyCaloriesAmount = loadDailyCaloriesFromFile()
-    
-    #plot a diagram only if file exists and is not empty
-    if dailyCaloriesAmount is not None:
-        arguments = dailyCaloriesAmount.keys()
-        values = dailyCaloriesAmount.values()
-        
-        #plot the bar diagram
-        plt.bar(arguments, values, color='red', width=0.35)
-        #dashed line showes a BMR of user
-        plt.axhline(y=bmr, label='BMR',color='black', linestyle='dashed')
-        plt.legend() #to show what means a dashed line
-        plt.xlabel('Date')
-        plt.ylabel('Calories')
-        plt.title('Eaten calories per day')
-        plt.show()
-        
         
 def loadOnlyTodayCalories():
     fileName = 'dailyCalories.json'
