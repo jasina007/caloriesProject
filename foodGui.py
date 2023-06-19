@@ -1,3 +1,4 @@
+import sys
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
@@ -9,10 +10,11 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QGraphicsView, QHBoxLayo
     QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMainWindow, QPushButton, QSizePolicy, QStatusBar,
     QVBoxLayout, QWidget, QMessageBox)
-import sys, re
 from loadCalories import loadCaloriesData
-from functionsAndDiagrams import findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR
+from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR, 
+                                  loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow, pieChartWithCalories)
 from loadActivitiesFunctions import takeFirstNumberFromString
+
 
 class FoodMainWindow(QMainWindow):
     def __init__(self):
@@ -69,6 +71,13 @@ class FoodMainWindow(QMainWindow):
         
         #deactivate most layouts at start of the app
         self.deactivateAtStart()
+        
+        #total amount of calories of this day 
+        self.todayCaloriesAmount = loadOnlyTodayCalories()
+        
+        #initializing of a dictionary with different food names and calories amount, necessary to diagrams
+        #structure of this dict: {food name: caloriesAmount}
+        self.todayDifferentFoodsDict = dict()
         
         #set status bar and central widget
         self.setCentralWidget(self.centralwidget)
@@ -175,7 +184,7 @@ class FoodMainWindow(QMainWindow):
         dailyCaloriesLayout.addLayout(barDiagramLayout)
         
         return dailyCaloriesLayout, dailyCaloriesLayoutWidget, barFoodDiagramWidget
-        
+    
     
     def createPushButton(self, dimensions, text):
         button = QPushButton(self.centralwidget, text=text)
@@ -193,7 +202,7 @@ class FoodMainWindow(QMainWindow):
         self.sportActivityButton.setVisible(False)
         self.resetFoodButton.setVisible(False)
         self.dailyCaloriesLayoutWidget.setVisible(False)
-        
+    
         
     def loadUserDataFromWidgets(self):
         try:
@@ -224,12 +233,23 @@ class FoodMainWindow(QMainWindow):
 
         
     def countBmrFunctions(self, item):
-        caloriesPer100gFromRow = takeFirstNumberFromString(item.text())
-        bmr = countBMR(self.sexData, self.weightData, self.heightData, self.age)
+        row = item.text()
+        caloriesPer100gFromRow = takeFirstNumberFromString(row)
+        foodName = getFoodNameFromRow(row)
+        self.bmr = countBMR(self.sexData, self.weightData, self.heightData, self.age)
         caloriesAmount = countCaloriesInFoodAmount(self.foodAmount, caloriesPer100gFromRow)
-        percentInBmr = percentCaloriesInBMR(caloriesAmount, bmr)
+        percentInBmr = percentCaloriesInBMR(caloriesAmount, self.bmr)
         
-        self.countBmrFunctionLabel.setText(f"{bmr:.2f}")
+        if foodName in self.todayDifferentFoodsDict.keys():
+            self.todayDifferentFoodsDict[foodName] += caloriesAmount
+        else:
+            self.todayDifferentFoodsDict.update({foodName: caloriesAmount})
+        
+        #accomodate calories amount to today's amount
+        self.todayCaloriesAmount += caloriesAmount
+           
+        #save numbers to labels
+        self.countBmrFunctionLabel.setText(f"{self.bmr:.2f}")
         self.countAmountCaloriesLabel.setText(f"{caloriesAmount:.2f}")
         self.percentBmrFunctionLabel.setText(f"{percentInBmr:.2f}")
         
@@ -237,6 +257,18 @@ class FoodMainWindow(QMainWindow):
     def printBmrInfoAndPieChart(self, item):
         self.countBmrFunctions(item)
         self.bmrLayoutWidget.setVisible(True)
+    
+    
+    def closeEvent(self, event):
+        yes = QMessageBox.StandardButton.Yes
+        no = QMessageBox.StandardButton.No
+        exitQuestion = QMessageBox.question(self, "Confirm exiting", "Are you sure to exit this app?", yes | no)
+        
+        if exitQuestion == yes:
+            event.accept()
+            saveTodayCaloriesToFile(self.todayCaloriesAmount)
+        else:
+            event.ignore()
     
     
     def createAndPrintMessageBox(self, windowTitle, text):

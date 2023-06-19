@@ -2,7 +2,8 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
-import json, os
+import json, os, re
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 def countBMR(sex, weight, height, age):
     match sex:
@@ -13,18 +14,23 @@ def countBMR(sex, weight, height, age):
         case _:
             return None
 
-
 def countCaloriesInFoodAmount(foodAmount, caloriesPer100gMl):
     return foodAmount/100 * caloriesPer100gMl
 
 def percentCaloriesInBMR(caloriesAmount, bmr):
     return caloriesAmount/bmr * 100
 
-#structure of caloriesEaten: [(caloriesAmount, name of food)]
+
+def getFoodNameFromRow(foodRow):
+    splittedName = re.split(',', foodRow)[0]
+    return re.sub(r'[\(\'\']', '', splittedName)
+
+
+#structure of caloriesEaten: {name of food:caloriesAmount}
 def pieChartWithCalories(caloriesEaten, bmr):
-    #taking calories amounts and food names from a list of tuples
-    caloriesAmounts = [percentCaloriesInBMR(elem[0], bmr) for elem in caloriesEaten]
-    foodNames = [elem[1] for elem in caloriesEaten]
+    #taking calories amounts and food names from dictionary
+    caloriesAmounts = [percentCaloriesInBMR(amount, bmr) for amount in caloriesEaten.values()]
+    foodNames = [caloriesEaten.keys()]
 
     #check if the eaten food exceeds 100%
     #if not, it will be showed in a pie chart
@@ -34,12 +40,16 @@ def pieChartWithCalories(caloriesEaten, bmr):
         caloriesAmounts.append(unEatenPercent)
         foodNames.append('Not eaten')
 
+    figure = plt.figure(figsize=(5,5))
+    pie_subplot = figure.add_subplot()
+    
     #set colours on a pie chart
     colours = sns.color_palette('bright')
     
     #set settings of a pie chart and percents to 2 decimal points
-    plt.pie(caloriesAmounts, labels=foodNames, colors=colours, autopct= '%.2f%%')
-    plt.show()
+    pie_subplot.pie(caloriesAmounts, labels=foodNames, colors=colours, autopct= '%.2f%%')
+    canvas = FigureCanvas(figure)
+    return canvas
 
 
 def findFoodNamesByString(listCalories, enteredString):
@@ -178,10 +188,10 @@ def loadOnlyTodayCalories():
         if currentDateStr in caloriesDict.keys():
             return caloriesDict[currentDateStr]
         
-    return None
+    return 0
             
 
 if __name__ == '__main__':
     '''dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
     print(getSlopeFromCorrectSpeedInterval(dictActivities, 3.4))'''
-    saveTodayCaloriesToFile(2694)
+    print(loadOnlyTodayCalories())
