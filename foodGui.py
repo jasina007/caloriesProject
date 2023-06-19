@@ -16,7 +16,7 @@ from PySide6.QtCharts import QChart, QPieSeries, QChartView, QBarSeries, QBarSet
 from loadCalories import loadCaloriesData
 from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR, 
                                   loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow,
-                                  loadDailyCaloriesFromFile)
+                                  loadDailyCaloriesFromFile, clearAllCalories)
 from loadActivitiesFunctions import takeFirstNumberFromString
 
 
@@ -229,7 +229,7 @@ class FoodMainWindow(QMainWindow):
             for item in self.matchingFoods:
                 self.foodListWidget.addItem(str(item))
                 
-            self.foodListWidget.itemClicked.connect(self.printBmrInfoAndPieChart)
+            self.foodListWidget.itemClicked.connect(self.activateBmrAndDiagrams)
             self.foodListLayoutWidget.setVisible(True)
 
         except FileNotFoundError:
@@ -258,14 +258,16 @@ class FoodMainWindow(QMainWindow):
         self.percentBmrFunctionLabel.setText(f"{percentInBmr:.2f}")
         
 
-    def printBmrInfoAndPieChart(self, item):
+    def activateBmrAndDiagrams(self, item):
         self.countBmrFunctions(item)
         self.createPieChart()
         self.bmrLayoutWidget.setVisible(True)
         self.createBarDiagram()
         self.dailyCaloriesLayoutWidget.setVisible(True)
+        self.resetFoodButton.clicked.connect(self.resetData)
         self.resetFoodButton.setVisible(True)
         self.sportActivityButton.setVisible(True)
+        
         
     def createPieChart(self):
         
@@ -325,14 +327,41 @@ class FoodMainWindow(QMainWindow):
             self.barFoodDiagramChartView.setChart(barChart)
             
     
+    def resetData(self):
+        yes = QMessageBox.StandardButton.Yes
+        no = QMessageBox.StandardButton.No
+        confirmQuestion = QMessageBox.question(self, "Delete all data?", 
+                                               "Are you sure of deleting all data from this app?", yes | no)
+    
+        if confirmQuestion == yes:
+            self.resetAll()
+        pass
+        
+    def resetAll(self):
+        self.todayCaloriesAmount = 0
+        self.todayDifferentFoodsDict = dict()
+        self.sexData = None
+        self.heightData = 0
+        self.weightData = 0
+        self.age = 0
+        self.enteredFood = ""
+        self.foodAmount = 0
+        self.bmr = 0
+        self.deactivateAtStart()
+        clearAllCalories()
+        
+    
     def closeEvent(self, event):
         yes = QMessageBox.StandardButton.Yes
         no = QMessageBox.StandardButton.No
-        exitQuestion = QMessageBox.question(self, "Confirm exiting", "Are you sure to exit this app?", yes | no)
+        exitQuestion = QMessageBox.question(self, "Save today calories?", "Would you like to save today's calories amount to a file?", 
+                                            yes | no)
         
         if exitQuestion == yes:
             event.accept()
             saveTodayCaloriesToFile(self.todayCaloriesAmount)
+        elif exitQuestion == no:
+            event.accept()
         else:
             event.ignore()
     

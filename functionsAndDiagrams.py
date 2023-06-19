@@ -144,7 +144,13 @@ def loadOnlyTodayCalories():
             return caloriesDict[currentDateStr]
         
     return 0
-            
+    
+#method to clear a dailyCalories.json file        
+def clearAllCalories():
+    fileName = 'dailyCalories.json'
+    if os.path.exists(fileName):
+        with open(fileName, 'w') as file:
+            json.dump({}, file)
 
 if __name__ == '__main__':
     '''dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
