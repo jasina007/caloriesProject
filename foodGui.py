@@ -17,162 +17,175 @@ class FoodMainWindow(QMainWindow):
         self.resize(680, 677)
         self.setWindowTitle("Food types window")
         self.centralwidget = QWidget()
-        self.verticalLayoutWidget = QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QRect(33, 20, 71, 51))
         
+        #there are 2 data layouts types: with vertical layout only and with horizontal layout inside a vertical layout
         #sex layout
-        self.sexLayout = QVBoxLayout(self.verticalLayoutWidget)
-        self.sexLayout.setContentsMargins(0, 0, 0, 0)
-        self.sexLabel = QLabel(self.verticalLayoutWidget, text="Sex")
-        self.sexLayout.addWidget(self.sexLabel)
-        self.sexComboBoxWidget = QComboBox(self.verticalLayoutWidget)
+        self.sexLayoutWidget = QWidget(self.centralwidget)
+        self.sexLayoutWidget.setGeometry(QRect(33, 20, 71, 51))
+        self.sexComboBoxWidget = QComboBox(self.sexLayoutWidget)
         self.sexComboBoxWidget.addItem("Female")
         self.sexComboBoxWidget.addItem("Male")
-        self.sexLayout.addWidget(self.sexComboBoxWidget)
-
+        self.sexLayout = self.userDataWithoutUnit("Sex", self.sexComboBoxWidget, self.sexLayoutWidget)
+        
         #height layout
-        self.heightLayoutWidget = QWidget(self.centralwidget)
-        self.heightLayoutWidget.setGeometry(QRect(113, 20, 80, 51))
-        self.heightLayout = QVBoxLayout(self.heightLayoutWidget)
-        self.heightLayout.setContentsMargins(0, 0, 0, 0)
-        self.heightLabel = QLabel(self.heightLayoutWidget, text="Height")
-        self.heightLayout.addWidget(self.heightLabel)
-        self.heightHorizontalLayout = QHBoxLayout()
-        self.heightWidget = QLineEdit(self.heightLayoutWidget)
-        self.heightHorizontalLayout.addWidget(self.heightWidget)
-        self.cmLabel = QLabel(self.heightLayoutWidget, text="cm")
-        self.heightHorizontalLayout.addWidget(self.cmLabel)
-        self.heightLayout.addLayout(self.heightHorizontalLayout)
+        self.heightLayout, self.heightLayoutWidget, self.heightWidget = self.userDataWithUnitLayout(QRect(113, 20, 80, 51), "Height", "cm")
 
         #weight layout
-        self.weightLayoutWidget = QWidget(self.centralwidget)
-        self.weightLayoutWidget.setGeometry(QRect(194, 20, 78, 51))
-        self.weightLayout = QVBoxLayout(self.weightLayoutWidget)
-        self.weightLayout.setContentsMargins(0, 0, 0, 0)
-        self.weightLabel = QLabel(self.weightLayoutWidget, text="Weight")
-        self.weightLayout.addWidget(self.weightLabel)
-        self.weightHorizontalLayout = QHBoxLayout()
-        self.weightWidget = QLineEdit(self.weightLayoutWidget)
-        self.weightHorizontalLayout.addWidget(self.weightWidget)
-        self.kgLabel = QLabel(self.weightLayoutWidget, text="kg")
-        self.weightHorizontalLayout.addWidget(self.kgLabel)
-        self.weightLayout.addLayout(self.weightHorizontalLayout)
+        self.weightLayout, self.weightLayoutWidget, self.weightWidget = self.userDataWithUnitLayout(QRect(194, 20, 78, 51), "Weight", "kg")
 
         #age layout
-        self.ageLayoutWidget = QWidget(self.centralwidget)
-        self.ageLayoutWidget.setGeometry(QRect(274, 20, 112, 51))
-        self.ageLayout = QVBoxLayout(self.ageLayoutWidget)
-        self.ageLayout.setContentsMargins(0, 0, 0, 0)
-        self.ageLabel = QLabel(self.ageLayoutWidget, text="Age")
-        self.ageLayout.addWidget(self.ageLabel)
-        self.ageHorizontalLayout = QHBoxLayout()
-        self.ageWidget = QLineEdit(self.ageLayoutWidget)
-        self.ageHorizontalLayout.addWidget(self.ageWidget)
-        self.yearOldLabel = QLabel(self.ageLayoutWidget, text="years old")
-        self.ageHorizontalLayout.addWidget(self.yearOldLabel)
-        self.ageLayout.addLayout(self.ageHorizontalLayout)
+        self.ageLayout, self.ageLayoutWidget, self.ageWidget = self.userDataWithUnitLayout(QRect(274, 20, 112, 51), "Age", "years old")
 
         #food layout
-        self.foodLayoutWidget = QWidget(self.centralwidget)
-        self.foodLayoutWidget.setGeometry(QRect(392, 20, 151, 51))
-        self.foodLayout = QVBoxLayout(self.foodLayoutWidget)
-        self.foodLayout.setContentsMargins(0, 0, 0, 0)
-        self.foodLabel = QLabel(self.foodLayoutWidget, text="Food")
-        self.foodLayout.addWidget(self.foodLabel)
-        self.foodWidget = QLineEdit(self.foodLayoutWidget)
-        self.foodLayout.addWidget(self.foodWidget)
+        foodLayoutWidget = QWidget(self.centralwidget)
+        foodLayoutWidget.setGeometry(QRect(392, 20, 151, 51))
+        self.foodWidget = QLineEdit(foodLayoutWidget)
+        self.foodLayout = self.userDataWithoutUnit("Food", self.foodWidget, foodLayoutWidget)
 
         #food amount layout
-        self.foodAmountLayoutWidget = QWidget(self.centralwidget)
-        self.foodAmountLayoutWidget.setGeometry(QRect(553, 20, 91, 51))
-        self.foodAmountLayout = QVBoxLayout(self.foodAmountLayoutWidget)
-        self.foodAmountLayout.setContentsMargins(0, 0, 0, 0)
-        self.foodAmountLabel = QLabel(self.foodAmountLayoutWidget, text="Food amount")
-        self.foodAmountLayout.addWidget(self.foodAmountLabel)
-        self.foodAmountHorizontalLayout = QHBoxLayout()
-        self.foodAmountWidget = QLineEdit(self.foodAmountLayoutWidget)
-        self.foodAmountHorizontalLayout.addWidget(self.foodAmountWidget)
-        self.unitFoodLabel = QLabel(self.foodAmountLayoutWidget, text="g/ml")
-        self.foodAmountHorizontalLayout.addWidget(self.unitFoodLabel)
-        self.foodAmountLayout.addLayout(self.foodAmountHorizontalLayout)
+        self.foodAmountLayout, self.foodAmountLayoutWidget, self.foodAmountWidget = self.userDataWithUnitLayout(QRect(553, 20, 91, 51), "Food amount", "g/ml")
 
-
-        self.confirmDataButton = QPushButton(self.centralwidget, text="Confirm data")
-        self.confirmDataButton.setGeometry(QRect(150, 80, 91, 24))
+        #confirm data button
+        self.confirmDataButton = self.createPushButton(QRect(150, 80, 91, 24), "Confirm data")
         
-        #food list layout
-        self.foodListLayoutWidget = QWidget(self.centralwidget)
-        self.foodListLayoutWidget.setGeometry(QRect(20, 120, 326, 251))
-        self.foodListLayout = QVBoxLayout(self.foodListLayoutWidget)
-        self.foodListLayout.setContentsMargins(0, 0, 0, 0)
-        self.chooseFoodLabel = QLabel(self.foodListLayoutWidget, text="Choose kind of 'Food' (entered above):")
-        self.foodListLayout.addWidget(self.chooseFoodLabel)
-        self.columnsFoodLabel = QLabel(self.foodListLayoutWidget, text="Full name, Type, Calories per 100g/ml, Kilojoules per 100g/ml")
-        self.foodListLayout.addWidget(self.columnsFoodLabel)
-        self.foodListWidget = QListWidget(self.foodListLayoutWidget)
-        self.foodListLayout.addWidget(self.foodListWidget)
+        
+        #food list layout        
+        self.foodListLayout, self.foodListLayoutWidget, self.foodListWidget = self.createFoodListLayout()
 
-
-        self.bmrLayoutWidget = QWidget(self.centralwidget)
-        self.bmrLayoutWidget.setGeometry(QRect(360, 90, 301, 281))
-        self.bmrLayout = QVBoxLayout(self.bmrLayoutWidget)
-        self.bmrLayout.setContentsMargins(0, 0, 0, 0)
-        self.caloriesInfoLayout = QVBoxLayout()
-        self.bmrHorizontalLayout = QHBoxLayout()
-        self.bmrLabel = QLabel(self.bmrLayoutWidget, text="Basal Metabolic Rate")
-        self.bmrHorizontalLayout.addWidget(self.bmrLabel)
-        self.countBmrFunctionLabel = QLabel(self.bmrLayoutWidget)
-        self.bmrHorizontalLayout.addWidget(self.countBmrFunctionLabel)
-        self.calLabel = QLabel(self.bmrLayoutWidget, text="cal")
-        self.bmrHorizontalLayout.addWidget(self.calLabel)
-        self.caloriesInfoLayout.addLayout(self.bmrHorizontalLayout)
-        self.foodCaloriesHorizontalLayout = QHBoxLayout()
-        self.caloriesInfoLabel = QLabel(self.bmrLayoutWidget, text="Calories in chosen food in entered amount: ")
-        self.foodCaloriesHorizontalLayout.addWidget(self.caloriesInfoLabel)
-        self.countAmountCaloriesLabel = QLabel(self.bmrLayoutWidget)
-        self.foodCaloriesHorizontalLayout.addWidget(self.countAmountCaloriesLabel)
-        self.calLabel_2 = QLabel(self.bmrLayoutWidget, text="cal")
-        self.foodCaloriesHorizontalLayout.addWidget(self.calLabel_2)
-        self.caloriesInfoLayout.addLayout(self.foodCaloriesHorizontalLayout)
-        self.percentHorizontalLayout = QHBoxLayout()
-        self.bmrInfoLabel = QLabel(self.bmrLayoutWidget, text="Percentage amount of food calories in BMR: ")
-        self.percentHorizontalLayout.addWidget(self.bmrInfoLabel)
-        self.percentBmrFunctionLabel = QLabel(self.bmrLayoutWidget)
-        self.percentHorizontalLayout.addWidget(self.percentBmrFunctionLabel)
-        self.percentSignLabel = QLabel(self.bmrLayoutWidget, text="%")
-        self.percentHorizontalLayout.addWidget(self.percentSignLabel)
-        self.caloriesInfoLayout.addLayout(self.percentHorizontalLayout)
-        self.circleDiagramInfoLabel = QLabel(self.bmrLayoutWidget, text="Circle diagram with all entered food types:")
-        self.caloriesInfoLayout.addWidget(self.circleDiagramInfoLabel)
-        self.circleDiagramWidget = QGraphicsView(self.bmrLayoutWidget)
-        self.caloriesInfoLayout.addWidget(self.circleDiagramWidget)
-        self.bmrLayout.addLayout(self.caloriesInfoLayout)
+        #BMR data layout
+        self.bmrLayout, self.bmrLayoutWidget, self.circleDiagramWidget, self.countBmrFunctionLabel, \
+            self.countAmountCaloriesLabel, self.percentBmrFunctionLabel = self.createBmrInfoLayout()
 
         #bottom buttons
-        self.sportActivityButton = QPushButton(self.centralwidget, text="Sport activity")
-        self.sportActivityButton.setGeometry(QRect(550, 610, 101, 41))
-        self.resetFoodButton = QPushButton(self.centralwidget, text="Reset foods")
-        self.resetFoodButton.setGeometry(QRect(30, 610, 111, 41))
-        
+        self.sportActivityButton = self.createPushButton(QRect(550, 610, 101, 41), "Sport activity")
+        self.resetFoodButton = self.createPushButton(QRect(30, 610, 111, 41), "Reset foods")
+    
         #daily calories layout
-        self.dailyCaloriesLayoutWidget = QWidget(self.centralwidget)
-        self.dailyCaloriesLayoutWidget.setGeometry(QRect(20, 390, 641, 211))
-        self.dailyCaloriesLayout = QVBoxLayout(self.dailyCaloriesLayoutWidget)
-        self.dailyCaloriesLayout.setContentsMargins(0, 0, 0, 0)
-        self.barDiagramLayout = QVBoxLayout()
-        self.barDiagramInfoLabel = QLabel(self.dailyCaloriesLayoutWidget, text="Daily consumed calories amount since last reset:")
-        self.barDiagramLayout.addWidget(self.barDiagramInfoLabel)
-        self.barFoodDiagramWidget = QGraphicsView(self.dailyCaloriesLayoutWidget)
-        self.barDiagramLayout.addWidget(self.barFoodDiagramWidget)
-        self.dailyCaloriesLayout.addLayout(self.barDiagramLayout)
+        self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramWidget = self.createDailyCalories()
+        
+        #deactivate most layouts at start of the app
+        self.deactivateAtStart()
         
         #set status bar and central widget
         self.setCentralWidget(self.centralwidget)
+        self.statusBarSetting()
+
+
+    #layout type with horizontal layout inside vertical layout
+    def userDataWithUnitLayout(self, dimensions, dataTypeName, unitName):
+        layoutWidget = QWidget(self.centralwidget)
+        layoutWidget.setGeometry(dimensions)
+        layout = QVBoxLayout(layoutWidget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        label = QLabel(layoutWidget, text=dataTypeName)
+        layout.addWidget(label)
+        horizontalLayout = QHBoxLayout()
+        lineEditWidget = QLineEdit(layoutWidget)
+        horizontalLayout.addWidget(lineEditWidget)
+        unitLabel = QLabel(layoutWidget, text=unitName)
+        horizontalLayout.addWidget(unitLabel)
+        layout.addLayout(horizontalLayout)
+        return layout, layoutWidget, lineEditWidget
+    
+    
+    #layout type without horizontal layout
+    def userDataWithoutUnit(self, dataTypeName, dataWidget, layoutWidget):
+        layout = QVBoxLayout(layoutWidget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        label = QLabel(layoutWidget, text=dataTypeName)
+        layout.addWidget(label)
+        layout.addWidget(dataWidget)
+        return layout
+    
+    
+    def createFoodListLayout(self):
+        foodListLayoutWidget = QWidget(self.centralwidget)
+        foodListLayoutWidget.setGeometry(QRect(20, 120, 326, 251))
+        foodListLayout = QVBoxLayout(foodListLayoutWidget)
+        foodListLayout.setContentsMargins(0, 0, 0, 0)
+        chooseFoodLabel = QLabel(foodListLayoutWidget, text="Choose kind of 'Food' (entered above):")
+        foodListLayout.addWidget(chooseFoodLabel)
+        columnsFoodLabel = QLabel(foodListLayoutWidget, text="Full name, Type, Calories per 100g/ml, Kilojoules per 100g/ml")
+        foodListLayout.addWidget(columnsFoodLabel)
+        foodListWidget = QListWidget(foodListLayoutWidget)
+        foodListLayout.addWidget(foodListWidget)
+        return foodListLayout, foodListLayoutWidget, foodListWidget
+    
+    
+    def createBmrInfoLayout(self):
+        bmrLayoutWidget = QWidget(self.centralwidget)
+        bmrLayoutWidget.setGeometry(QRect(360, 90, 301, 281))
+        bmrLayout = QVBoxLayout(bmrLayoutWidget)
+        bmrLayout.setContentsMargins(0, 0, 0, 0)
+        caloriesInfoLayout = QVBoxLayout()
+        bmrHorizontalLayout = QHBoxLayout()
+        bmrLabel = QLabel(bmrLayoutWidget, text="Basal Metabolic Rate")
+        bmrHorizontalLayout.addWidget(bmrLabel)
+        countBmrFunctionLabel = QLabel(bmrLayoutWidget)
+        bmrHorizontalLayout.addWidget(countBmrFunctionLabel)
+        calLabel = QLabel(bmrLayoutWidget, text="cal")
+        bmrHorizontalLayout.addWidget(calLabel)
+        caloriesInfoLayout.addLayout(bmrHorizontalLayout)
+        foodCaloriesHorizontalLayout = QHBoxLayout()
+        caloriesInfoLabel = QLabel(bmrLayoutWidget, text="Calories in chosen food in entered amount: ")
+        foodCaloriesHorizontalLayout.addWidget(caloriesInfoLabel)
+        countAmountCaloriesLabel = QLabel(bmrLayoutWidget)
+        foodCaloriesHorizontalLayout.addWidget(countAmountCaloriesLabel)
+        calLabel_2 = QLabel(bmrLayoutWidget, text="cal")
+        foodCaloriesHorizontalLayout.addWidget(calLabel_2)
+        caloriesInfoLayout.addLayout(foodCaloriesHorizontalLayout)
+        percentHorizontalLayout = QHBoxLayout()
+        bmrInfoLabel = QLabel(bmrLayoutWidget, text="Percentage amount of food calories in BMR: ")
+        percentHorizontalLayout.addWidget(bmrInfoLabel)
+        percentBmrFunctionLabel = QLabel(bmrLayoutWidget)
+        percentHorizontalLayout.addWidget(percentBmrFunctionLabel)
+        percentSignLabel = QLabel(bmrLayoutWidget, text="%")
+        percentHorizontalLayout.addWidget(percentSignLabel)
+        caloriesInfoLayout.addLayout(percentHorizontalLayout)
+        circleDiagramInfoLabel = QLabel(bmrLayoutWidget, text="Circle diagram with all entered food types:")
+        caloriesInfoLayout.addWidget(circleDiagramInfoLabel)
+        circleDiagramWidget = QGraphicsView(bmrLayoutWidget)
+        caloriesInfoLayout.addWidget(circleDiagramWidget)
+        bmrLayout.addLayout(caloriesInfoLayout)
+        
+        return bmrLayout, bmrLayoutWidget, circleDiagramWidget, countBmrFunctionLabel, \
+            countAmountCaloriesLabel, percentBmrFunctionLabel
+    
+    
+    def createDailyCalories(self):
+        dailyCaloriesLayoutWidget = QWidget(self.centralwidget)
+        dailyCaloriesLayoutWidget.setGeometry(QRect(20, 390, 641, 211))
+        dailyCaloriesLayout = QVBoxLayout(dailyCaloriesLayoutWidget)
+        dailyCaloriesLayout.setContentsMargins(0, 0, 0, 0)
+        barDiagramLayout = QVBoxLayout()
+        barDiagramInfoLabel = QLabel(dailyCaloriesLayoutWidget, text="Daily consumed calories amount since last reset:")
+        barDiagramLayout.addWidget(barDiagramInfoLabel)
+        barFoodDiagramWidget = QGraphicsView(dailyCaloriesLayoutWidget)
+        barDiagramLayout.addWidget(barFoodDiagramWidget)
+        dailyCaloriesLayout.addLayout(barDiagramLayout)
+        
+        return dailyCaloriesLayout, dailyCaloriesLayoutWidget, barFoodDiagramWidget
+        
+    
+    def createPushButton(self, dimensions, text):
+        button = QPushButton(self.centralwidget, text=text)
+        button.setGeometry(dimensions)
+        return button
+    
+    def statusBarSetting(self):
         self.statusbar = QStatusBar()
         self.statusbar.setObjectName(u"statusbar")
         self.setStatusBar(self.statusbar)
 
-    
+
+    def deactivateAtStart(self):
+        self.foodListLayoutWidget.setVisible(False)
+        self.bmrLayoutWidget.setVisible(False)
+        self.sportActivityButton.setVisible(False)
+        self.resetFoodButton.setVisible(False)
+        self.dailyCaloriesLayoutWidget.setVisible(False)
+
+
 app = QApplication(sys.argv)
 window = FoodMainWindow()
 window.show()
