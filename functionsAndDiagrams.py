@@ -21,10 +21,41 @@ def percentCaloriesInBMR(caloriesAmount, bmr):
     return caloriesAmount/bmr * 100
 
 
+
+def getEstimatingTimeSlope(slope, weight, caloriesAmount):
+    try:
+        hoursFloat = caloriesAmount/(weight*slope)
+        hours = int(hoursFloat)
+        minutes = (hoursFloat - hours)*60
+        return (int(hours), int(minutes))
+        
+    except ValueError:
+        print("Dividing by 0")
+
+
 def getFoodNameFromRow(foodRow):
     splittedName = re.split(',', foodRow)[0]
     return re.sub(r'[\(\'\']', '', splittedName)
 
+def correctValueFromString(stringActivity):
+    withoutQuote = re.split("\'", stringActivity)[-1]
+    first_comma_removed = withoutQuote.replace(',', '', 1)
+    return first_comma_removed[:-1].replace(" ", "")
+
+
+def listOrFloat(valueString):
+    if valueString.startswith("[") and valueString.endswith("]"):
+        return "list"
+    else:
+        return "float"
+
+
+def getListFromListStringActivities(stringList):
+    splitted = re.split("['']", stringList)[1:-1]
+    return [item for item in splitted if len(item)>=3 ]
+    
+def convertListToListOfTuples(strList):
+    return [tuple(item.split(',')) for item in strList]
 
 def findFoodNamesByString(listCalories, enteredString):
     listMatchingFoods = []
@@ -53,10 +84,10 @@ def findMinInSpeedTuple(tuple):
     
     # Iterate over the elements in the tuple(without the last one, slope)
     for element in tuple[:3]:
-        if element is not None and element < smallest:
-            smallest = element
+        if element is not None:
+            if float(element) < smallest:
+                smallest = element
     return smallest
-
 
 # Sort the list of tuples based on the smallest number in each tuple(without slopes)
 def sortSpeedValues(dictValueSpeed):
@@ -171,8 +202,7 @@ def loadTodayEatings():
     return loadSthFromFile(filename)
 
 if __name__ == '__main__':
-    '''dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
-    print(getSlopeFromCorrectSpeedInterval(dictActivities, 3.4))'''
-    dict1 = {'Bar': 123, 'Chocolate': 300}
-    
-    print(loadTodayEatings())
+    dictActivities = "['None,3.218688,None,1.9929788501512924', 'None,None,3.218688,2.495632807932813', 'None,None,4.02336,2.998286765714334', 'None,None,4.828032,3.298115442285767', 'None,None,5.632704,3.827224871529473', 'None,None,5.632704,5.996573531428668', 'None,None,6.437376,5.000084106353022', 'None,None,7.2420480000000005,6.2964022080001', 'None,None,8.04672,8.02482634352954']"
+    '''print(getSlopeFromCorrectSpeedInterval(dictActivities, 0))
+    print(getMinSpeedEnteredByUser(dictActivities))'''
+    print(getMinSpeedEnteredByUser(convertListToListOfTuples(getListFromListStringActivities(dictActivities))))
