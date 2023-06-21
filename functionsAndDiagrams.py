@@ -121,17 +121,18 @@ def saveTodayCaloriesToFile(caloriesTotalAmount):
         json.dump(caloriesDict, fileWrite)
 
 
-def loadDailyCaloriesFromFile():
-    fileName = 'dailyCalories.json'
-    
-    #check if a file exists and is not empty
-    if os.path.exists(fileName) and os.path.getsize(fileName) > 0:
-        with open(fileName, 'r') as fileRead:
+def loadSthFromFile(filename):
+    if os.path.exists(filename) and os.path.getsize(filename) > 0:
+        with open(filename, 'r') as fileRead:
             caloriesDict = json.load(fileRead)
         return caloriesDict
     return None
+
+
+def loadDailyCaloriesFromFile():
+    return loadSthFromFile('dailyCalories.json')
     
-        
+    
 def loadOnlyTodayCalories():
     fileName = 'dailyCalories.json'
     
@@ -145,14 +146,33 @@ def loadOnlyTodayCalories():
         
     return 0
     
+    
+def clearJsonDailyCalories():
+    clearJsonFile('dailyCalories.json')
+
+def clearJsonTodayEatings():
+    clearJsonFile('todayEatings.json')
+    
+    
 #method to clear a dailyCalories.json file        
-def clearAllCalories():
-    fileName = 'dailyCalories.json'
+def clearJsonFile(fileName):
     if os.path.exists(fileName):
         with open(fileName, 'w') as file:
             json.dump({}, file)
+            
+def saveTodayEatings(eatingsDictionary):
+    filename = 'todayEatings.json'
+    
+    with open(filename, 'w') as file:
+        json.dump(eatingsDictionary, file)
+    
+def loadTodayEatings():
+    filename = 'todayEatings.json'
+    return loadSthFromFile(filename)
 
 if __name__ == '__main__':
     '''dictActivities = [(None, 3.218688, None, 1.9929788501512924), (None, None, 3.218688, 2.495632807932813), (None, None, 4.02336, 2.998286765714334), (None, None, 4.828032, 3.298115442285767), (None, None, 5.632704, 3.827224871529473), (None, None, 5.632704, 5.996573531428668), (None, None, 6.437376, 5.000084106353022), (None, None, 7.2420480000000005, 6.2964022080001), (None, None, 8.04672, 8.02482634352954)]
     print(getSlopeFromCorrectSpeedInterval(dictActivities, 3.4))'''
-    print(loadOnlyTodayCalories())
+    dict1 = {'Bar': 123, 'Chocolate': 300}
+    
+    print(loadTodayEatings())

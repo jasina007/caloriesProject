@@ -16,7 +16,8 @@ from PySide6.QtCharts import QChart, QPieSeries, QChartView, QBarSeries, QBarSet
 from loadCalories import loadCaloriesData
 from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR, 
                                   loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow,
-                                  loadDailyCaloriesFromFile, clearAllCalories)
+                                  loadDailyCaloriesFromFile, clearJsonTodayEatings, clearJsonDailyCalories,
+                                  loadTodayEatings, saveTodayEatings)
 from loadActivitiesFunctions import takeFirstNumberFromString
 
 
@@ -81,7 +82,7 @@ class FoodMainWindow(QMainWindow):
         
         #initializing of a dictionary with different food names and calories amount, necessary to diagrams
         #structure of this dict: {food name: caloriesAmount}
-        self.todayDifferentFoodsDict = dict()
+        self.todayDifferentFoodsDict = loadTodayEatings()
         
         #set status bar and central widget
         self.setCentralWidget(self.centralwidget)
@@ -213,27 +214,31 @@ class FoodMainWindow(QMainWindow):
             self.sexData = self.sexComboBoxWidget.currentText().lower()
             self.heightData = int(self.heightWidget.text())
             self.weightData = int(self.weightWidget.text())
-            self.age = int(self.weightWidget.text())
+            self.age = int(self.ageWidget.text())
             self.enteredFood = self.foodWidget.text()
             self.foodAmount = int(self.foodAmountWidget.text())
+            return True
             
         except ValueError:
             self.createAndPrintMessageBox("Incorrect number", "Please enter numbers in lines: height, weight, age, Food amount")
+            self.deactivateAtStart()
         
         
     def loadFoodTypesAndSearch(self):
-        try:
+        try:   
             self.foodListWidget.clear()
-            self.loadUserDataFromWidgets()
-            self.matchingFoods = findFoodNamesByString(self.caloriesList, self.enteredFood)
-            for item in self.matchingFoods:
-                self.foodListWidget.addItem(str(item))
-                
-            self.foodListWidget.itemClicked.connect(self.activateBmrAndDiagrams)
-            self.foodListLayoutWidget.setVisible(True)
+            if self.loadUserDataFromWidgets():
+                self.matchingFoods = findFoodNamesByString(self.caloriesList, self.enteredFood)
+                for item in self.matchingFoods:
+                    self.foodListWidget.addItem(str(item))
+                    
+                self.foodListWidget.itemClicked.connect(self.activateBmrAndDiagrams)
+                self.foodListLayoutWidget.setVisible(True)
 
         except FileNotFoundError:
             self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
+        except AttributeError:
+            pass
 
         
     def countBmrFunctions(self, item):
@@ -271,7 +276,6 @@ class FoodMainWindow(QMainWindow):
         
     def createPieChart(self):
         
-        self.circleDiagramChartView.clearMask()
         #taking calories amounts and food names from dictionary
         caloriesAmounts = [percentCaloriesInBMR(amount, self.bmr) for amount in self.todayDifferentFoodsDict.values()]
         foodNames = list(self.todayDifferentFoodsDict.keys())
@@ -298,7 +302,6 @@ class FoodMainWindow(QMainWindow):
     
     def createBarDiagram(self):
         
-        self.barFoodDiagramChartView.clearMask()
          #loading data from JSON file
         dailyCaloriesAmount = loadDailyCaloriesFromFile()
         
@@ -326,18 +329,22 @@ class FoodMainWindow(QMainWindow):
             barChartView.setRenderHint(QPainter.RenderHint.Antialiasing)
             self.barFoodDiagramChartView.setChart(barChart)
             
-    
+    #all the process of asking the user about deleting
     def resetData(self):
         yes = QMessageBox.StandardButton.Yes
         no = QMessageBox.StandardButton.No
-        confirmQuestion = QMessageBox.question(self, "Delete all data?", 
-                                               "Are you sure of deleting all data from this app?", yes | no)
-    
-        if confirmQuestion == yes:
-            self.resetAll()
-        pass
+        resetQuestionToday = QMessageBox.question(self, "Delete today data?", 
+                                               "Do you want to delete all today data from this app?", yes | no)
+        if resetQuestionToday == yes:
+            self.resetToday()
+
+        resetQuestion = QMessageBox.question(self, "Delete previous data?", 
+                                            "Do you want to delete all daily calories amounts from this app?", yes | no)
+        if resetQuestion == yes:
+            clearJsonDailyCalories()
+            
         
-    def resetAll(self):
+    def resetUserData(self):
         self.todayCaloriesAmount = 0
         self.todayDifferentFoodsDict = dict()
         self.sexData = None
@@ -347,8 +354,11 @@ class FoodMainWindow(QMainWindow):
         self.enteredFood = ""
         self.foodAmount = 0
         self.bmr = 0
+
+    def resetToday(self):
+        self.resetUserData()
+        clearJsonTodayEatings()
         self.deactivateAtStart()
-        clearAllCalories()
         
     
     def closeEvent(self, event):
@@ -360,6 +370,7 @@ class FoodMainWindow(QMainWindow):
         if exitQuestion == yes:
             event.accept()
             saveTodayCaloriesToFile(self.todayCaloriesAmount)
+            saveTodayEatings(self.todayDifferentFoodsDict)
         elif exitQuestion == no:
             event.accept()
         else:
