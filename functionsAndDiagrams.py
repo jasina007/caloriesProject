@@ -127,6 +127,14 @@ def getSlopeFromCorrectSpeedInterval(listTupleSpeeds, speedKmh):
     if currentIndex == len(sortedListSpeeds):
         return sortedListSpeeds[currentIndex-1][-1]
         
+        
+def getMaxSpeedInList(speedList):
+    if speedList[-1][-2] is not None:
+        return speedList[-1][-2] + 5
+    elif speedList[-1][1] is not None:
+        return speedList[-1][1]
+    else:
+        return None
 
 #save today's amount of calories to a file
 #  there are 4 options: file doesn't exist[a]; file is empty(user deleted all data)[b]; 
@@ -202,7 +210,7 @@ def loadTodayEatings():
     return loadSthFromFile(filename)
 
 if __name__ == '__main__':
-    dictActivities = "['None,3.218688,None,1.9929788501512924', 'None,None,3.218688,2.495632807932813', 'None,None,4.02336,2.998286765714334', 'None,None,4.828032,3.298115442285767', 'None,None,5.632704,3.827224871529473', 'None,None,5.632704,5.996573531428668', 'None,None,6.437376,5.000084106353022', 'None,None,7.2420480000000005,6.2964022080001', 'None,None,8.04672,8.02482634352954']"
+    dictActivities = [(None, 16.09344, None, 4.0035946812773755), (32.18688, None, None, 16.023197215596895), (16.09344, 19.151193600000003, None, 5.996573531428668), (19.312128, 22.369881600000003, None, 8.02482634352954), (22.530816, 25.588569600000003, None, 10.017805193680834), (25.749504, 30.577536000000002, None, 12.028421024806917)]
     '''print(getSlopeFromCorrectSpeedInterval(dictActivities, 0))
     print(getMinSpeedEnteredByUser(dictActivities))'''
-    print(getMinSpeedEnteredByUser(convertListToListOfTuples(getListFromListStringActivities(dictActivities))))
+    print(getMaxSpeedInList(dictActivities))

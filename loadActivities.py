@@ -1,6 +1,7 @@
 import re
 from loadActivitiesFunctions import convertMinMaxEqToKmh, takeAllNumbersFromString, caloriesLinearRegression, \
     convert1DListTo2D, splitRowAndGetData, getActivityName, addActivityToDict
+from functionsAndDiagrams import getMaxSpeedInList
 
 
 #method which load 'exercise_dataset.csv' file and process data 
@@ -39,5 +40,6 @@ def loadActivitiesData():
 
 if __name__ == '__main__':
     dict1 = loadActivitiesData()
-    for item in dict1.items():
-        print(item)    
+    lista = dict1['Walking']
+    print(getMaxSpeedInList(lista)) 
+    

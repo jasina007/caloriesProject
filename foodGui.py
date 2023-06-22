@@ -1,16 +1,12 @@
 import sys,re, ast
 from datetime import datetime
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTimer, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon, QPen,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QGraphicsView, 
-                               QGraphicsScene, QHBoxLayout,QLabel, QLineEdit, 
+from PySide6.QtCore import (QRect, QTimer, Qt)
+from PySide6.QtGui import QPen, QPainter
+
+from PySide6.QtWidgets import (QApplication, QComboBox, 
+                               QHBoxLayout,QLabel, QLineEdit, 
                                QListWidget, QListWidgetItem,QMainWindow, 
-                               QPushButton, QSizePolicy, QStatusBar,
+                               QPushButton, QStatusBar,
                                 QVBoxLayout, QWidget, QMessageBox, QSlider)
 from PySide6.QtCharts import QChart, QPieSeries, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis, QLineSeries
 from loadCalories import loadCaloriesData
@@ -21,7 +17,7 @@ from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCalories
                                   loadTodayEatings, saveTodayEatings, findActivitiesByString, correctValueFromString,
                                   listOrFloat, getListFromListStringActivities, getMinSpeedEnteredByUser,
                                   convertListToListOfTuples, getSlopeFromCorrectSpeedInterval,
-                                  getEstimatingTimeSlope)
+                                  getEstimatingTimeSlope, getMaxSpeedInList)
 from loadActivitiesFunctions import takeFirstNumberFromString
 
 
@@ -83,7 +79,7 @@ class FoodMainWindow(QMainWindow):
         #daily calories layout
         self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramChartView = self.createDailyCalories()
         
-        
+        self.resetFoodsShows = False
         
         #deactivate most layouts at start of the app
         self.deactivateAtStart()
@@ -249,7 +245,7 @@ class FoodMainWindow(QMainWindow):
                     
                 self.foodListWidget.itemClicked.connect(self.activateBmrAndDiagrams)
                 self.foodListLayoutWidget.setVisible(True)
-
+                
         except FileNotFoundError:
             self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
         except AttributeError:
@@ -273,9 +269,9 @@ class FoodMainWindow(QMainWindow):
         self.todayCaloriesAmount += self.caloriesAmount
            
         #save numbers to labels
-        self.countBmrFunctionLabel.setText(f"{self.bmr:.2f}")
-        self.countAmountCaloriesLabel.setText(f"{self.caloriesAmount:.2f}")
-        self.percentBmrFunctionLabel.setText(f"{percentInBmr:.2f}")
+        self.countBmrFunctionLabel.setText(self.formatFLoatToTwoDecimalPoints(self.bmr))
+        self.countAmountCaloriesLabel.setText(self.formatFLoatToTwoDecimalPoints(self.caloriesAmount))
+        self.percentBmrFunctionLabel.setText(self.formatFLoatToTwoDecimalPoints(percentInBmr))
         
 
     def activateBmrAndDiagrams(self, item):
@@ -334,6 +330,8 @@ class FoodMainWindow(QMainWindow):
             
             #create main view
             barChart = QChart()
+            barChart.setAnimationOptions(QChart.NoAnimation)
+            barChart.setDropShadowEnabled(False)
             barChart.addSeries(barSeries)
             barChart.setTitle("Daily calories amounts" )
             
@@ -369,6 +367,10 @@ class FoodMainWindow(QMainWindow):
             self.barFoodDiagramChartView.setChart(barChart)
             
             
+    def formatFLoatToTwoDecimalPoints(self, float):
+        return f"{float:.2f}"        
+    
+    
     #message box with template Yes/No
     def createMessageBoxYesNo(self, windowTitle, text):
         question = QMessageBox(self)
@@ -381,7 +383,10 @@ class FoodMainWindow(QMainWindow):
             
             
     def startResetFoods(self):
-        QTimer.singleShot(0, self.resetTodayData)        
+        #check if the flag is false(to avoid multiple appears message box)
+        if not self.resetFoodsShows:
+            self.resetFoodsShows = True
+            QTimer.singleShot(0, self.resetTodayData)        
     
     
     #the process of asking the user about deleting today data
@@ -393,13 +398,16 @@ class FoodMainWindow(QMainWindow):
         else:
             pass
         
+        #now reset message boxes can appear
+        self.resetFoodsShows = False
+        
         
     #delete data from previous days(dailyCalories.json)
     def resetPreviousData(self):
         chosenOption = self.createMessageBoxYesNo("Delete previous data?", "Do you want to delete data from previous days?")        
-        if  chosenOption == QMessageBox.StandardButton.Yes:
+        if chosenOption == QMessageBox.StandardButton.Yes:
             clearJsonDailyCalories()
-        self.loadFoodTypesAndSearch()
+        pass
         
     
     def resetUserData(self):
@@ -417,10 +425,6 @@ class FoodMainWindow(QMainWindow):
         self.resetUserData()
         clearJsonTodayEatings()
         self.deactivateAtStart()
-        
-        
-        
-        
         
         
         
@@ -478,9 +482,7 @@ class FoodMainWindow(QMainWindow):
         estimatingTimeLayout.addWidget(countedTimeLabel)
         return estimatingTimeLayout, estimatingTimeLayoutWidget, countedTimeLabel
         
-        
   
-    
     def createAllActivityRelatedLayouts(self):
         self.activityLayout, self.activityLayoutWidget, self.sportActivityWidget = self.createSportActivityLayout()
         self.confirmActivity = self.createPushButton(QRect(1150, 50, 131, 24), text="Confirm sport activity")
@@ -490,19 +492,22 @@ class FoodMainWindow(QMainWindow):
         self.resetActivitiesButton = self.createPushButton(QRect(1280, 610, 131, 41), text="Reset sport activities")
     
     
+    #first step of creating activities related GUI part
     def sportActivitiesActivate(self):
         #read activities types from a file 
         try:
             self.activitiesDict = loadActivitiesData()
+            #now are creating all activity related layouts
+            self.createAllActivityRelatedLayouts()
+            self.activityLayoutWidget.setVisible(True)
+            self.confirmActivity.clicked.connect(self.printActivities)
+            self.confirmActivity.setVisible(True)
+            self.deactivateActivityLayoutsAtStart()
         except FileNotFoundError:
             self.createAndPrintMessageBox("Activities file not found", "File with activities not found ")
-    
-        #now are creating all activity related layouts
-        self.createAllActivityRelatedLayouts()
-        self.activityLayoutWidget.setVisible(True)
-        self.confirmActivity.clicked.connect(self.printActivities)
-        self.confirmActivity.setVisible(True)
-
+            pass
+        
+        
     def printActivities(self):
         self.sportActivityListWidget.clear()
         self.enteredActivity = self.sportActivityWidget.text()
@@ -513,47 +518,63 @@ class FoodMainWindow(QMainWindow):
         self.sportActivityListWidget.itemClicked.connect(self.countSpeed)
         self.listActivitiesLayoutWidget.setVisible(True)
 
+        #the flag to avoid multiple appears of message box
+        self.resetActivitiesShows = False
 
     def countSpeed(self, activity):
         #check if the value is list or float(if a speed is a crucial factor to burn calories)
         valueString = correctValueFromString(activity.text())
         typeValue = listOrFloat(valueString)
 
-        if typeValue == 'list':
-            self.speedLayoutWidget.setVisible(True)
-            self.listSpeeds = ast.literal_eval(valueString)
-            self.minimumSpeed = getMinSpeedEnteredByUser(self.listSpeeds)
-            self.speedSliderWidget.setMinimum(self.minimumSpeed)
-            self.speedSliderWidget.setTickPosition(QSlider.TickPosition.TicksBelow)
-            self.speedSliderWidget.setTickInterval(2)
-            
-            self.currentSpeedLabel.setText(str(self.minimumSpeed))
-            self.speedSliderWidget.valueChanged.connect(self.sliderChanged)
-        else:
-            self.speedLayoutWidget.setVisible(False)
-            self.estimatingTime = getEstimatingTimeSlope(float(valueString), self.weightData, self.caloriesAmount)
+        try:
+            if typeValue == 'list':
+                self.speedLayoutWidget.setVisible(True)
+                self.listSpeeds = ast.literal_eval(valueString)
+                self.minimumSpeed = getMinSpeedEnteredByUser(self.listSpeeds)
+                self.speedSliderWidget.setMinimum(self.minimumSpeed)
+                self.speedSliderWidget.setMaximum(getMaxSpeedInList(self.listSpeeds))
+                self.speedSliderWidget.setTickPosition(QSlider.TickPosition.TicksBelow)
+                self.speedSliderWidget.setTickInterval(2)
+                self.currentSpeedLabel.setText(str(self.minimumSpeed))
+                self.speedSliderWidget.valueChanged.connect(self.sliderChanged)
+            else:
+                self.speedLayoutWidget.setVisible(False)
+                self.estimatingTime = getEstimatingTimeSlope(float(valueString), self.weightData, self.caloriesAmount)
+                self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
+                self.estimatingTimeLayoutWidget.setVisible(True)
+                self.resetActivitiesButton.clicked.connect(self.resetActivities)
+                self.resetActivitiesButton.setVisible(True)
+        except ZeroDivisionError:
+            self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
+            self.activityLayoutWidget.setVisible(False)
+            self.confirmActivity.setVisible(False)
+            self.deactivateActivityLayoutsAtStart()
+
+
+    def sliderChanged(self):
+        try:
+            self.currentSpeed = self.sender().value()
+            self.currentSpeedLabel.setText(self.formatFLoatToTwoDecimalPoints(self.currentSpeed))
+            slopeFunction = getSlopeFromCorrectSpeedInterval(self.listSpeeds, self.currentSpeed)
+            self.estimatingTime = getEstimatingTimeSlope(slopeFunction, self.weightData, self.caloriesAmount)
             self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
             self.estimatingTimeLayoutWidget.setVisible(True)
-            self.resetActivitiesButton.clicked.connect(self.resetActivities)
+            self.resetActivitiesButton.clicked.connect(self.startResetActivities)
             self.resetActivitiesButton.setVisible(True)
-            
-        
-    def sliderChanged(self):
-        self.currentSpeed = self.sender().value()
-        self.currentSpeedLabel.setText(str(self.currentSpeed))
-        slopeFunction = getSlopeFromCorrectSpeedInterval(self.listSpeeds, self.currentSpeed)
-        self.estimatingTime = getEstimatingTimeSlope(slopeFunction, self.weightData, self.caloriesAmount)
-        self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
-        self.estimatingTimeLayoutWidget.setVisible(True)
-        self.resetActivitiesButton.clicked.connect(self.startResetActivities)
-        self.resetActivitiesButton.setVisible(True)
+        except ZeroDivisionError:
+            self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
+            self.activityLayoutWidget.setVisible(False)
+            self.confirmActivity.setVisible(False)
+            self.deactivateActivityLayoutsAtStart()
         
         
     def startResetActivities(self):
-        QTimer.singleShot(0, self.resetActivities)
+        if not self.resetActivitiesShows:
+            self.resetActivitiesShows = True
+            QTimer.singleShot(0, self.resetActivities)
+        
     
-    
-    def deactivateActivityLayouts(self):
+    def deactivateActivityLayoutsAtStart(self):
         self.listActivitiesLayoutWidget.setVisible(False)
         self.speedLayoutWidget.setVisible(False)
         self.estimatingTimeLayoutWidget.setVisible(False)
@@ -563,37 +584,42 @@ class FoodMainWindow(QMainWindow):
     def resetActivitiesData(self):
         self.currentSpeed = 0
         self.listSpeeds = []
-        self.deactivateActivityLayouts()
+        self.estimatingTime = None
+        self.deactivateActivityLayoutsAtStart()
     
     
     def resetActivities(self):
         chosenOption = self.createMessageBoxYesNo("Delete activities?", "Do you want to delete all activities data?")
         if chosenOption == QMessageBox.StandardButton.Yes:
             self.resetActivitiesData()
-        else:
-            pass
+            self.sportActivitiesActivate()
+        pass
         
         
     def closeEvent(self, event):
-        chosenOption = self.createMessageBoxYesNo("Save today calories?", "Would you like to save today's calories amount to a file?")
+        #print a question only if calories amount today is not zero
+        if self.todayCaloriesAmount > 0:
+            chosenOption = self.createMessageBoxYesNo("Save today calories?", "Would you like to save today's calories amount to a file?")
 
-        if chosenOption == QMessageBox.StandardButton.Yes:
-            event.accept()
-            saveTodayCaloriesToFile(self.todayCaloriesAmount)
-            saveTodayEatings(self.todayDifferentFoodsDict)
-        elif chosenOption == QMessageBox.StandardButton.No:
-            event.accept()
+            if chosenOption == QMessageBox.StandardButton.Yes:
+                event.accept()
+                saveTodayCaloriesToFile(self.todayCaloriesAmount)
+                saveTodayEatings(self.todayDifferentFoodsDict)
+            elif chosenOption == QMessageBox.StandardButton.No:
+                event.accept()
+            else:
+                event.ignore()
         else:
-            event.ignore()
-    
-    
+            event.accept()
+        
+        
+    #template with OK(info only) message box
     def createAndPrintMessageBox(self, windowTitle, text):
-        msg_box = QMessageBox()
-        msg_box.setWindowTitle(windowTitle)
-        msg_box.setText(text)
-        msg_box.setStandardButtons(QMessageBox.Ok)
-        msg_box.exec()
-
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle(windowTitle)
+        msgBox.setText(text)
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.exec()
 
 
 app = QApplication(sys.argv)

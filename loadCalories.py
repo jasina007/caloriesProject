@@ -44,7 +44,6 @@ def loadCaloriesData():
     return caloriesList #returning a created list of tuples
 
 
-    
 if __name__ == '__main__':
     print(loadCaloriesData())
     
