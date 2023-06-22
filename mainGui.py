@@ -1,24 +1,17 @@
-import sys,re, ast
+import sys, ast
 from datetime import datetime
 from PySide6.QtCore import (QRect, QTimer, Qt)
 from PySide6.QtGui import QPen, QPainter
 
-from PySide6.QtWidgets import (QApplication, QComboBox, 
-                               QHBoxLayout,QLabel, QLineEdit, 
-                               QListWidget, QListWidgetItem,QMainWindow, 
-                               QPushButton, QStatusBar,
-                                QVBoxLayout, QWidget, QMessageBox, QSlider)
+from PySide6.QtWidgets import (QApplication, QComboBox, QLineEdit, QMainWindow, 
+                               QPushButton, QStatusBar,QWidget, QMessageBox, QSlider)
 from PySide6.QtCharts import QChart, QPieSeries, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis, QLineSeries
 from loadCalories import loadCaloriesData
 from loadActivities import loadActivitiesData
-from functionsAndDiagrams import (findFoodNamesByString, countBMR, countCaloriesInFoodAmount, percentCaloriesInBMR, 
-                                  loadOnlyTodayCalories, saveTodayCaloriesToFile, getFoodNameFromRow,
-                                  loadDailyCaloriesFromFile, clearJsonTodayEatings, clearJsonDailyCalories,
-                                  loadTodayEatings, saveTodayEatings, findActivitiesByString, correctValueFromString,
-                                  listOrFloat, getListFromListStringActivities, getMinSpeedEnteredByUser,
-                                  convertListToListOfTuples, getSlopeFromCorrectSpeedInterval,
-                                  getEstimatingTimeSlope, getMaxSpeedInList)
+from functionsAndDiagrams import *
 from loadActivitiesFunctions import takeFirstNumberFromString
+from createActivitiesLayouts import *
+from createFoodsLayouts import *
 
 
 class FoodMainWindow(QMainWindow):
@@ -35,25 +28,32 @@ class FoodMainWindow(QMainWindow):
         self.sexComboBoxWidget = QComboBox(self.sexLayoutWidget)
         self.sexComboBoxWidget.addItem("Female")
         self.sexComboBoxWidget.addItem("Male")
-        self.sexLayout = self.userDataWithoutUnit("Sex", self.sexComboBoxWidget, self.sexLayoutWidget)
+        self.sexLayout = userDataWithoutUnitFL("Sex", self.sexComboBoxWidget, self.sexLayoutWidget)
         
         #height layout
-        self.heightLayout, self.heightLayoutWidget, self.heightWidget = self.userDataWithUnitLayout(QRect(140, 10, 91, 51), "Height", "cm")
+        self.heightLayout, self.heightLayoutWidget, self.heightWidget = userDataWithUnitLayoutFL(self.centralwidget, 
+                                                                                                 QRect(140, 10, 91, 51), 
+                                                                                                 "Height", "cm")
 
         #weight layout
-        self.weightLayout, self.weightLayoutWidget, self.weightWidget = self.userDataWithUnitLayout(QRect(270, 10, 91, 51), "Weight", "kg")
+        self.weightLayout, self.weightLayoutWidget, self.weightWidget = userDataWithUnitLayoutFL(self.centralwidget, 
+                                                                                                 QRect(270, 10, 91, 51), 
+                                                                                                 "Weight", "kg")
 
         #age layout
-        self.ageLayout, self.ageLayoutWidget, self.ageWidget = self.userDataWithUnitLayout(QRect(400, 10, 112, 51), "Age", "years old")
+        self.ageLayout, self.ageLayoutWidget, self.ageWidget = userDataWithUnitLayoutFL(self.centralwidget,
+                                                                                            QRect(400, 10, 112, 51), 
+                                                                                            "Age", "years old")
 
         #food layout
         foodLayoutWidget = QWidget(self.centralwidget)
         foodLayoutWidget.setGeometry(QRect(550, 10, 211, 51))
         self.foodWidget = QLineEdit(foodLayoutWidget)
-        self.foodLayout = self.userDataWithoutUnit("Food", self.foodWidget, foodLayoutWidget)
+        self.foodLayout = userDataWithoutUnitFL("Food", self.foodWidget, foodLayoutWidget)
 
         #food amount layout
-        self.foodAmountLayout, self.foodAmountLayoutWidget, self.foodAmountWidget = self.userDataWithUnitLayout(QRect(800, 10, 111, 51), 
+        self.foodAmountLayout, self.foodAmountLayoutWidget, self.foodAmountWidget = userDataWithUnitLayoutFL(self.centralwidget, 
+                                                                                                             QRect(800, 10, 111, 51), 
                                                                                                                 "Food amount", "g/ml")
 
         #confirm data button
@@ -62,11 +62,11 @@ class FoodMainWindow(QMainWindow):
         
         
         #food list layout        
-        self.foodListLayout, self.foodListLayoutWidget, self.foodListWidget = self.createFoodListLayout()
+        self.foodListLayout, self.foodListLayoutWidget, self.foodListWidget = createFoodListLayoutFL(self.centralwidget)
 
         #BMR data layout
         self.bmrLayout, self.bmrLayoutWidget, self.circleDiagramChartView, self.countBmrFunctionLabel, \
-            self.countAmountCaloriesLabel, self.percentBmrFunctionLabel = self.createBmrInfoLayout()
+            self.countAmountCaloriesLabel, self.percentBmrFunctionLabel = createBmrInfoLayoutFL(self.centralwidget)
 
         #bottom buttons
         self.sportActivityButton = self.createPushButton(QRect(800, 610, 111, 41), "Sport activity")
@@ -77,7 +77,7 @@ class FoodMainWindow(QMainWindow):
         self.yAxisAttached = False
 
         #daily calories layout
-        self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramChartView = self.createDailyCalories()
+        self.dailyCaloriesLayout, self.dailyCaloriesLayoutWidget, self.barFoodDiagramChartView = createDailyCaloriesFL(self.centralwidget)
         
         self.resetFoodsShows = False
         
@@ -101,102 +101,6 @@ class FoodMainWindow(QMainWindow):
         except FileNotFoundError:
             self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
 
-
-    #layout type with horizontal layout inside vertical layout
-    def userDataWithUnitLayout(self, dimensions, dataTypeName, unitName):
-        layoutWidget = QWidget(self.centralwidget)
-        layoutWidget.setGeometry(dimensions)
-        layout = QVBoxLayout(layoutWidget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel(layoutWidget, text=dataTypeName)
-        layout.addWidget(label)
-        horizontalLayout = QHBoxLayout()
-        lineEditWidget = QLineEdit(layoutWidget)
-        horizontalLayout.addWidget(lineEditWidget)
-        unitLabel = QLabel(layoutWidget, text=unitName)
-        horizontalLayout.addWidget(unitLabel)
-        layout.addLayout(horizontalLayout)
-        return layout, layoutWidget, lineEditWidget
-    
-    
-    #layout type without horizontal layout
-    def userDataWithoutUnit(self, dataTypeName, dataWidget, layoutWidget):
-        layout = QVBoxLayout(layoutWidget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel(layoutWidget, text=dataTypeName)
-        layout.addWidget(label)
-        layout.addWidget(dataWidget)
-        return layout
-    
-    
-    def createFoodListLayout(self):
-        foodListLayoutWidget = QWidget(self.centralwidget)
-        foodListLayoutWidget.setGeometry(QRect(20, 120, 326, 271))
-        foodListLayout = QVBoxLayout(foodListLayoutWidget)
-        foodListLayout.setContentsMargins(0, 0, 0, 0)
-        chooseFoodLabel = QLabel(foodListLayoutWidget, text="Choose kind of 'Food' (entered above):")
-        foodListLayout.addWidget(chooseFoodLabel)
-        columnsFoodLabel = QLabel(foodListLayoutWidget, text="Full name, Type, Calories per 100g/ml, Kilojoules per 100g/ml")
-        foodListLayout.addWidget(columnsFoodLabel)
-        foodListWidget = QListWidget(foodListLayoutWidget)
-        foodListLayout.addWidget(foodListWidget)
-        return foodListLayout, foodListLayoutWidget, foodListWidget
-    
-    
-    def createBmrInfoLayout(self):
-        bmrLayoutWidget = QWidget(self.centralwidget)
-        bmrLayoutWidget.setGeometry(QRect(368, 90, 541, 301))
-        bmrLayout = QVBoxLayout(bmrLayoutWidget)
-        bmrLayout.setContentsMargins(0, 0, 0, 0)
-        caloriesInfoLayout = QVBoxLayout()
-        bmrHorizontalLayout = QHBoxLayout()
-        bmrLabel = QLabel(bmrLayoutWidget, text="Basal Metabolic Rate")
-        bmrHorizontalLayout.addWidget(bmrLabel)
-        countBmrFunctionLabel = QLabel(bmrLayoutWidget)
-        bmrHorizontalLayout.addWidget(countBmrFunctionLabel)
-        calLabel = QLabel(bmrLayoutWidget, text="cal")
-        bmrHorizontalLayout.addWidget(calLabel)
-        caloriesInfoLayout.addLayout(bmrHorizontalLayout)
-        foodCaloriesHorizontalLayout = QHBoxLayout()
-        caloriesInfoLabel = QLabel(bmrLayoutWidget, text="Calories in chosen food in entered amount: ")
-        foodCaloriesHorizontalLayout.addWidget(caloriesInfoLabel)
-        countAmountCaloriesLabel = QLabel(bmrLayoutWidget)
-        foodCaloriesHorizontalLayout.addWidget(countAmountCaloriesLabel)
-        calLabel_2 = QLabel(bmrLayoutWidget, text="cal")
-        foodCaloriesHorizontalLayout.addWidget(calLabel_2)
-        caloriesInfoLayout.addLayout(foodCaloriesHorizontalLayout)
-        percentHorizontalLayout = QHBoxLayout()
-        bmrInfoLabel = QLabel(bmrLayoutWidget, text="Percentage amount of food calories in BMR: ")
-        percentHorizontalLayout.addWidget(bmrInfoLabel)
-        percentBmrFunctionLabel = QLabel(bmrLayoutWidget)
-        percentHorizontalLayout.addWidget(percentBmrFunctionLabel)
-        percentSignLabel = QLabel(bmrLayoutWidget, text="%")
-        percentHorizontalLayout.addWidget(percentSignLabel)
-        caloriesInfoLayout.addLayout(percentHorizontalLayout)
-        circleDiagramInfoLabel = QLabel(bmrLayoutWidget, text="Circle diagram with all entered food types:")
-        caloriesInfoLayout.addWidget(circleDiagramInfoLabel)
-        circleDiagramChartView = QChartView(bmrLayoutWidget)
-        caloriesInfoLayout.addWidget(circleDiagramChartView)
-        bmrLayout.addLayout(caloriesInfoLayout)
-        
-        return bmrLayout, bmrLayoutWidget, circleDiagramChartView, countBmrFunctionLabel, \
-            countAmountCaloriesLabel, percentBmrFunctionLabel
-    
-    
-    def createDailyCalories(self):
-        dailyCaloriesLayoutWidget = QWidget(self.centralwidget)
-        dailyCaloriesLayoutWidget.setGeometry(QRect(20, 400, 891, 201))
-        dailyCaloriesLayout = QVBoxLayout(dailyCaloriesLayoutWidget)
-        dailyCaloriesLayout.setContentsMargins(0, 0, 0, 0)
-        barDiagramLayout = QVBoxLayout()
-        barDiagramInfoLabel = QLabel(dailyCaloriesLayoutWidget, text="Daily consumed calories amount since last reset:")
-        barDiagramLayout.addWidget(barDiagramInfoLabel)
-        barFoodDiagramChartView = QChartView(dailyCaloriesLayoutWidget)
-        barDiagramLayout.addWidget(barFoodDiagramChartView)
-        dailyCaloriesLayout.addLayout(barDiagramLayout)
-        
-        return dailyCaloriesLayout, dailyCaloriesLayoutWidget, barFoodDiagramChartView
-    
     
     def createPushButton(self, dimensions, text):
         button = QPushButton(self.centralwidget, text=text)
@@ -209,8 +113,7 @@ class FoodMainWindow(QMainWindow):
 
 
 
-#activities about GUI functionality
-
+#activities related GUI functionality
     def deactivateAtStart(self):
         self.foodListLayoutWidget.setVisible(False)
         self.bmrLayoutWidget.setVisible(False)
@@ -219,7 +122,6 @@ class FoodMainWindow(QMainWindow):
         self.dailyCaloriesLayoutWidget.setVisible(False)
 
     
-        
     def loadUserDataFromWidgets(self):
         try:
             self.sexData = self.sexComboBoxWidget.currentText().lower()
@@ -269,9 +171,9 @@ class FoodMainWindow(QMainWindow):
         self.todayCaloriesAmount += self.caloriesAmount
            
         #save numbers to labels
-        self.countBmrFunctionLabel.setText(self.formatFLoatToTwoDecimalPoints(self.bmr))
-        self.countAmountCaloriesLabel.setText(self.formatFLoatToTwoDecimalPoints(self.caloriesAmount))
-        self.percentBmrFunctionLabel.setText(self.formatFLoatToTwoDecimalPoints(percentInBmr))
+        self.countBmrFunctionLabel.setText(formatFloatToTwoDecimalPoints(self.bmr))
+        self.countAmountCaloriesLabel.setText(formatFloatToTwoDecimalPoints(self.caloriesAmount))
+        self.percentBmrFunctionLabel.setText(formatFloatToTwoDecimalPoints(percentInBmr))
         
 
     def activateBmrAndDiagrams(self, item):
@@ -330,8 +232,6 @@ class FoodMainWindow(QMainWindow):
             
             #create main view
             barChart = QChart()
-            barChart.setAnimationOptions(QChart.NoAnimation)
-            barChart.setDropShadowEnabled(False)
             barChart.addSeries(barSeries)
             barChart.setTitle("Daily calories amounts" )
             
@@ -346,7 +246,7 @@ class FoodMainWindow(QMainWindow):
             #creation of y axis with the scale(from 0 to max among calories amounts)
             yScale = QValueAxis()
             yScale.setMin(0)
-            yScale.setMax(max(values) * 1.2) 
+            yScale.setMax(max(values)) 
             yScale.setTickCount(5) 
             barChart.setAxisY(yScale)
             self.yAxisAttached = True
@@ -354,7 +254,7 @@ class FoodMainWindow(QMainWindow):
             #create a dashed line on the height of BMR value
             dashedLineSeries = QLineSeries()
             dashedLineSeries.append(0, self.bmr)
-            dashedLineSeries.append(len(values) - 1, self.bmr)
+            dashedLineSeries.append(len(values), self.bmr)
             pen = QPen(Qt.PenStyle.DashLine)
             dashedLineSeries.setPen(pen)
             barChart.addSeries(dashedLineSeries)
@@ -367,9 +267,7 @@ class FoodMainWindow(QMainWindow):
             self.barFoodDiagramChartView.setChart(barChart)
             
             
-    def formatFLoatToTwoDecimalPoints(self, float):
-        return f"{float:.2f}"        
-    
+
     
     #message box with template Yes/No
     def createMessageBoxYesNo(self, windowTitle, text):
@@ -421,74 +319,20 @@ class FoodMainWindow(QMainWindow):
         self.foodAmount = 0
         self.bmr = 0
 
+
     def resetToday(self):
         self.resetUserData()
         clearJsonTodayEatings()
         self.deactivateAtStart()
         
         
-        
-        
-#creations of activities related layouts
-    def createSportActivityLayout(self):
-        activityLayoutWidget = QWidget(self.centralwidget)
-        activityLayoutWidget.setGeometry(QRect(940, 10, 481, 34))
-        activityLayout = QHBoxLayout(activityLayoutWidget)
-        sportActivityLabel = QLabel(activityLayoutWidget, text="Sport activity: ")
-        activityLayout.addWidget(sportActivityLabel)
-        sportActivityWidget = QLineEdit(activityLayoutWidget)
-        activityLayout.addWidget(sportActivityWidget)
-        return activityLayout, activityLayoutWidget, sportActivityWidget    
-
-
-    def createActivityListLayout(self):
-        listActivitiesLayoutWidget = QWidget(self.centralwidget)
-        listActivitiesLayoutWidget.setGeometry(QRect(940, 100, 481, 231))
-        listActivitiesLayout = QVBoxLayout(listActivitiesLayoutWidget)
-        chooseActivityLabel = QLabel(listActivitiesLayoutWidget, text="Choose type of sport activity: ")
-        listActivitiesLayout.addWidget(chooseActivityLabel)
-        columnsNameActivitiesLabel = QLabel(listActivitiesLayoutWidget, text="Full name, Calories to burn per kg")
-        listActivitiesLayout.addWidget(columnsNameActivitiesLabel)
-        sportActivityListWidget = QListWidget(listActivitiesLayoutWidget)
-        listActivitiesLayout.addWidget(sportActivityListWidget)
-        return listActivitiesLayout, listActivitiesLayoutWidget, sportActivityListWidget
-    
-    
-    def createSpeedLayout(self):
-        speedLayoutWidget = QWidget(self.centralwidget)
-        speedLayoutWidget.setGeometry(QRect(940, 340, 481, 191))
-        speedLabelsLayout = QVBoxLayout(speedLayoutWidget)
-        averageSpeedLabel = QLabel(speedLayoutWidget, text="Average speed during activity:")
-        speedLabelsLayout.addWidget(averageSpeedLabel)
-        currentSpeedLayout = QHBoxLayout()
-        currentSpeedLabel = QLabel(speedLayoutWidget)
-        currentSpeedLayout.addWidget(currentSpeedLabel)
-        speedUnitLabel = QLabel(speedLayoutWidget, text="km/h")
-        currentSpeedLayout.addWidget(speedUnitLabel)
-        speedLabelsLayout.addLayout(currentSpeedLayout)
-        speedSliderWidget = QSlider(Qt.Horizontal)
-        speedLayoutWidget.setLayout(speedLabelsLayout)
-        speedLabelsLayout.addWidget(speedSliderWidget)
-        return speedLabelsLayout, speedLayoutWidget, currentSpeedLabel, speedSliderWidget
-    
-    
-    def createEstimatingTimeLayout(self):
-        estimatingTimeLayoutWidget = QWidget(self.centralwidget)
-        estimatingTimeLayoutWidget.setGeometry(QRect(950, 560, 241, 91))
-        estimatingTimeLayout = QVBoxLayout(estimatingTimeLayoutWidget)
-        estimatingTimeLabel = QLabel(estimatingTimeLayoutWidget, text="Estimating time to burn today's calories:")
-        estimatingTimeLayout.addWidget(estimatingTimeLabel)
-        countedTimeLabel = QLabel(estimatingTimeLayoutWidget)
-        estimatingTimeLayout.addWidget(countedTimeLabel)
-        return estimatingTimeLayout, estimatingTimeLayoutWidget, countedTimeLabel
-        
-  
+    #activity related functionality
     def createAllActivityRelatedLayouts(self):
-        self.activityLayout, self.activityLayoutWidget, self.sportActivityWidget = self.createSportActivityLayout()
+        self.activityLayout, self.activityLayoutWidget, self.sportActivityWidget = createSportActivityLayoutAF(self.centralwidget)
         self.confirmActivity = self.createPushButton(QRect(1150, 50, 131, 24), text="Confirm sport activity")
-        self.listActivitiesLayout, self.listActivitiesLayoutWidget, self.sportActivityListWidget = self.createActivityListLayout()
-        self.speedLayout, self.speedLayoutWidget, self.currentSpeedLabel, self.speedSliderWidget = self.createSpeedLayout()
-        self.estimatingTimeLayout, self.estimatingTimeLayoutWidget, self.countedTimeLabel = self.createEstimatingTimeLayout()
+        self.listActivitiesLayout, self.listActivitiesLayoutWidget, self.sportActivityListWidget = createActivityListLayoutAF(self.centralwidget)
+        self.speedLayout, self.speedLayoutWidget, self.currentSpeedLabel, self.speedSliderWidget = createSpeedLayoutAF(self.centralwidget)
+        self.estimatingTimeLayout, self.estimatingTimeLayoutWidget, self.countedTimeLabel = createEstimatingTimeLayoutAF(self.centralwidget)
         self.resetActivitiesButton = self.createPushButton(QRect(1280, 610, 131, 41), text="Reset sport activities")
     
     
@@ -502,7 +346,7 @@ class FoodMainWindow(QMainWindow):
             self.activityLayoutWidget.setVisible(True)
             self.confirmActivity.clicked.connect(self.printActivities)
             self.confirmActivity.setVisible(True)
-            self.deactivateActivityLayoutsAtStart()
+            self.sportActivityButton.setVisible(False)
         except FileNotFoundError:
             self.createAndPrintMessageBox("Activities file not found", "File with activities not found ")
             pass
@@ -521,6 +365,17 @@ class FoodMainWindow(QMainWindow):
         #the flag to avoid multiple appears of message box
         self.resetActivitiesShows = False
 
+
+    #method to avoid repeating code
+    def countAndPrintEstimatingTime(self, slope):
+        self.estimatingTime = getEstimatingTimeSlope(slope, self.weightData, self.caloriesAmount)
+        self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
+        self.estimatingTimeLayoutWidget.setVisible(True)
+        self.resetActivitiesButton.clicked.connect(self.startResetActivities)
+        self.resetActivitiesButton.setVisible(True)
+
+
+    #method which count all need to define estimating time 
     def countSpeed(self, activity):
         #check if the value is list or float(if a speed is a crucial factor to burn calories)
         valueString = correctValueFromString(activity.text())
@@ -535,36 +390,28 @@ class FoodMainWindow(QMainWindow):
                 self.speedSliderWidget.setMaximum(getMaxSpeedInList(self.listSpeeds))
                 self.speedSliderWidget.setTickPosition(QSlider.TickPosition.TicksBelow)
                 self.speedSliderWidget.setTickInterval(2)
-                self.currentSpeedLabel.setText(str(self.minimumSpeed))
+                self.currentSpeedLabel.setText(formatFloatToTwoDecimalPoints(self.minimumSpeed))
                 self.speedSliderWidget.valueChanged.connect(self.sliderChanged)
             else:
                 self.speedLayoutWidget.setVisible(False)
-                self.estimatingTime = getEstimatingTimeSlope(float(valueString), self.weightData, self.caloriesAmount)
-                self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
-                self.estimatingTimeLayoutWidget.setVisible(True)
-                self.resetActivitiesButton.clicked.connect(self.resetActivities)
-                self.resetActivitiesButton.setVisible(True)
+                self.countAndPrintEstimatingTime(float(valueString))
+                
+        #dividing by zero is due to a lack of user data
         except ZeroDivisionError:
             self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
+            self.deactivateActivityLayoutsAtStart()
             self.activityLayoutWidget.setVisible(False)
             self.confirmActivity.setVisible(False)
-            self.deactivateActivityLayoutsAtStart()
 
 
     def sliderChanged(self):
         try:
             self.currentSpeed = self.sender().value()
-            self.currentSpeedLabel.setText(self.formatFLoatToTwoDecimalPoints(self.currentSpeed))
+            self.currentSpeedLabel.setText(formatFloatToTwoDecimalPoints(self.currentSpeed))
             slopeFunction = getSlopeFromCorrectSpeedInterval(self.listSpeeds, self.currentSpeed)
-            self.estimatingTime = getEstimatingTimeSlope(slopeFunction, self.weightData, self.caloriesAmount)
-            self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
-            self.estimatingTimeLayoutWidget.setVisible(True)
-            self.resetActivitiesButton.clicked.connect(self.startResetActivities)
-            self.resetActivitiesButton.setVisible(True)
+            self.countAndPrintEstimatingTime(slopeFunction)
         except ZeroDivisionError:
             self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
-            self.activityLayoutWidget.setVisible(False)
-            self.confirmActivity.setVisible(False)
             self.deactivateActivityLayoutsAtStart()
         
         
@@ -584,7 +431,7 @@ class FoodMainWindow(QMainWindow):
     def resetActivitiesData(self):
         self.currentSpeed = 0
         self.listSpeeds = []
-        self.estimatingTime = None
+        self.estimatingTime = ()
         self.deactivateActivityLayoutsAtStart()
     
     
@@ -592,7 +439,7 @@ class FoodMainWindow(QMainWindow):
         chosenOption = self.createMessageBoxYesNo("Delete activities?", "Do you want to delete all activities data?")
         if chosenOption == QMessageBox.StandardButton.Yes:
             self.resetActivitiesData()
-            self.sportActivitiesActivate()
+        self.resetActivitiesShows = False
         pass
         
         

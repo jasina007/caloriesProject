@@ -136,6 +136,11 @@ def getMaxSpeedInList(speedList):
     else:
         return None
 
+
+def formatFloatToTwoDecimalPoints(float):
+    return f"{float:.2f}"        
+    
+
 #save today's amount of calories to a file
 #  there are 4 options: file doesn't exist[a]; file is empty(user deleted all data)[b]; 
 #  file has previous dates, but not today's[c]; in a file is today's date(we want to overwrite item with current date)[d]
