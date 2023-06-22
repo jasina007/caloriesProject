@@ -2,7 +2,7 @@ import sys,re, ast
 from datetime import datetime
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
+    QSize, QTimer, QUrl, Qt)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon, QPen,
     QImage, QKeySequence, QLinearGradient, QPainter,
@@ -261,20 +261,20 @@ class FoodMainWindow(QMainWindow):
         caloriesPer100gFromRow = takeFirstNumberFromString(row)
         foodName = getFoodNameFromRow(row)
         self.bmr = countBMR(self.sexData, self.weightData, self.heightData, self.age)
-        caloriesAmount = countCaloriesInFoodAmount(self.foodAmount, caloriesPer100gFromRow)
-        percentInBmr = percentCaloriesInBMR(caloriesAmount, self.bmr)
+        self.caloriesAmount = countCaloriesInFoodAmount(self.foodAmount, caloriesPer100gFromRow)
+        percentInBmr = percentCaloriesInBMR(self.caloriesAmount, self.bmr)
         
         if foodName in self.todayDifferentFoodsDict.keys():
-            self.todayDifferentFoodsDict[foodName] += caloriesAmount
+            self.todayDifferentFoodsDict[foodName] += self.caloriesAmount
         else:
-            self.todayDifferentFoodsDict.update({foodName: caloriesAmount})
+            self.todayDifferentFoodsDict.update({foodName: self.caloriesAmount})
         
         #accomodate calories amount to today's amount
-        self.todayCaloriesAmount += caloriesAmount
+        self.todayCaloriesAmount += self.caloriesAmount
            
         #save numbers to labels
         self.countBmrFunctionLabel.setText(f"{self.bmr:.2f}")
-        self.countAmountCaloriesLabel.setText(f"{caloriesAmount:.2f}")
+        self.countAmountCaloriesLabel.setText(f"{self.caloriesAmount:.2f}")
         self.percentBmrFunctionLabel.setText(f"{percentInBmr:.2f}")
         
 
@@ -284,7 +284,7 @@ class FoodMainWindow(QMainWindow):
         self.bmrLayoutWidget.setVisible(True)
         self.createBarDiagram()
         self.dailyCaloriesLayoutWidget.setVisible(True)
-        self.resetFoodButton.clicked.connect(self.resetData)
+        self.resetFoodButton.clicked.connect(self.startResetFoods)
         self.resetFoodButton.setVisible(True)
         self.sportActivityButton.clicked.connect(self.sportActivitiesActivate)
         self.sportActivityButton.setVisible(True)
@@ -369,21 +369,39 @@ class FoodMainWindow(QMainWindow):
             self.barFoodDiagramChartView.setChart(barChart)
             
             
-    #all the process of asking the user about deleting
-    def resetData(self):
-        yes = QMessageBox.StandardButton.Yes
-        no = QMessageBox.StandardButton.No
-        resetQuestionToday = QMessageBox.question(self, "Delete today data?", 
-                                               "Do you want to delete all today data from this app?", yes | no)
-        if resetQuestionToday == yes:
+    #message box with template Yes/No
+    def createMessageBoxYesNo(self, windowTitle, text):
+        question = QMessageBox(self)
+        question.setWindowTitle(windowTitle)
+        question.setText(text)
+        question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        question.setIcon(QMessageBox.Icon.Question)
+        chosenOption = question.exec()
+        return chosenOption
+            
+            
+    def startResetFoods(self):
+        QTimer.singleShot(0, self.resetTodayData)        
+    
+    
+    #the process of asking the user about deleting today data
+    def resetTodayData(self):
+        chosenOption = self.createMessageBoxYesNo("Delete today data?", "Do you want to delete all today's data?")
+        if chosenOption == QMessageBox.StandardButton.Yes:
             self.resetToday()
-
-        resetQuestion = QMessageBox.question(self, "Delete previous data?", 
-                                            "Do you want to delete all daily calories amounts from this app?", yes | no)
-        if resetQuestion == yes:
-            clearJsonDailyCalories()
-        pass
+            QTimer.singleShot(0, self.resetPreviousData)   
+        else:
+            pass
         
+        
+    #delete data from previous days(dailyCalories.json)
+    def resetPreviousData(self):
+        chosenOption = self.createMessageBoxYesNo("Delete previous data?", "Do you want to delete data from previous days?")        
+        if  chosenOption == QMessageBox.StandardButton.Yes:
+            clearJsonDailyCalories()
+        self.loadFoodTypesAndSearch()
+        
+    
     def resetUserData(self):
         self.todayCaloriesAmount = 0
         self.todayDifferentFoodsDict = dict()
@@ -399,6 +417,12 @@ class FoodMainWindow(QMainWindow):
         self.resetUserData()
         clearJsonTodayEatings()
         self.deactivateAtStart()
+        
+        
+        
+        
+        
+        
         
         
 #creations of activities related layouts
@@ -498,8 +522,6 @@ class FoodMainWindow(QMainWindow):
         if typeValue == 'list':
             self.speedLayoutWidget.setVisible(True)
             self.listSpeeds = ast.literal_eval(valueString)
-            #listSpeeds = getListFromListStringActivities(valueString)
-            #self.listTupleSpeeds = convertListToListOfTuples(listSpeeds)
             self.minimumSpeed = getMinSpeedEnteredByUser(self.listSpeeds)
             self.speedSliderWidget.setMinimum(self.minimumSpeed)
             self.speedSliderWidget.setTickPosition(QSlider.TickPosition.TicksBelow)
@@ -509,7 +531,7 @@ class FoodMainWindow(QMainWindow):
             self.speedSliderWidget.valueChanged.connect(self.sliderChanged)
         else:
             self.speedLayoutWidget.setVisible(False)
-            self.estimatingTime = getEstimatingTimeSlope(float(valueString), self.weightData, self.todayCaloriesAmount)
+            self.estimatingTime = getEstimatingTimeSlope(float(valueString), self.weightData, self.caloriesAmount)
             self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
             self.estimatingTimeLayoutWidget.setVisible(True)
             self.resetActivitiesButton.clicked.connect(self.resetActivities)
@@ -520,40 +542,46 @@ class FoodMainWindow(QMainWindow):
         self.currentSpeed = self.sender().value()
         self.currentSpeedLabel.setText(str(self.currentSpeed))
         slopeFunction = getSlopeFromCorrectSpeedInterval(self.listSpeeds, self.currentSpeed)
-        self.estimatingTime = getEstimatingTimeSlope(slopeFunction, self.weightData, self.todayCaloriesAmount)
+        self.estimatingTime = getEstimatingTimeSlope(slopeFunction, self.weightData, self.caloriesAmount)
         self.countedTimeLabel.setText(f"Hours: {self.estimatingTime[0]}, minutes: {self.estimatingTime[1]}")
         self.estimatingTimeLayoutWidget.setVisible(True)
-        self.resetActivitiesButton.clicked.connect(self.resetActivities)
+        self.resetActivitiesButton.clicked.connect(self.startResetActivities)
         self.resetActivitiesButton.setVisible(True)
         
+        
+    def startResetActivities(self):
+        QTimer.singleShot(0, self.resetActivities)
+    
+    
+    def deactivateActivityLayouts(self):
+        self.listActivitiesLayoutWidget.setVisible(False)
+        self.speedLayoutWidget.setVisible(False)
+        self.estimatingTimeLayoutWidget.setVisible(False)
+        self.resetActivitiesButton.setVisible(False)
+    
+    
+    def resetActivitiesData(self):
+        self.currentSpeed = 0
+        self.listSpeeds = []
+        self.deactivateActivityLayouts()
+    
     
     def resetActivities(self):
-        yes = QMessageBox.StandardButton.Yes
-        no = QMessageBox.StandardButton.No
-        resetQuestionToday = QMessageBox.question(self, "Delete activities?", 
-                                               "Do you want to delete all activities data?", yes | no)
-        if resetQuestionToday == yes:
-            self.currentSpeed = 0
-            self.listSpeeds = []
-            self.listActivitiesLayoutWidget.setVisible(False)
-            self.speedLayoutWidget.setVisible(False)
-            self.estimatingTimeLayoutWidget.setVisible(False)
-            self.resetActivitiesButton.setVisible(False)
+        chosenOption = self.createMessageBoxYesNo("Delete activities?", "Do you want to delete all activities data?")
+        if chosenOption == QMessageBox.StandardButton.Yes:
+            self.resetActivitiesData()
         else:
-            self.printActivities()
+            pass
         
         
     def closeEvent(self, event):
-        yes = QMessageBox.StandardButton.Yes
-        no = QMessageBox.StandardButton.No
-        exitQuestion = QMessageBox.question(self, "Save today calories?", "Would you like to save today's calories amount to a file?", 
-                                            yes | no)
-        
-        if exitQuestion == yes:
+        chosenOption = self.createMessageBoxYesNo("Save today calories?", "Would you like to save today's calories amount to a file?")
+
+        if chosenOption == QMessageBox.StandardButton.Yes:
             event.accept()
             saveTodayCaloriesToFile(self.todayCaloriesAmount)
             saveTodayEatings(self.todayDifferentFoodsDict)
-        elif exitQuestion == no:
+        elif chosenOption == QMessageBox.StandardButton.No:
             event.accept()
         else:
             event.ignore()
