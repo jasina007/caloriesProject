@@ -147,7 +147,7 @@ class FoodMainWindow(QMainWindow):
                     
                 self.foodListWidget.itemClicked.connect(self.activateBmrAndDiagrams)
                 self.foodListLayoutWidget.setVisible(True)
-                
+                    
         except FileNotFoundError:
             self.createAndPrintMessageBox("Lack of file", "There isn't a calories.csv file in a directory")
         except AttributeError:
@@ -266,9 +266,7 @@ class FoodMainWindow(QMainWindow):
             barChartView.setRenderHint(QPainter.RenderHint.Antialiasing)
             self.barFoodDiagramChartView.setChart(barChart)
             
-            
-
-    
+        
     #message box with template Yes/No
     def createMessageBoxYesNo(self, windowTitle, text):
         question = QMessageBox(self)
@@ -307,9 +305,9 @@ class FoodMainWindow(QMainWindow):
             clearJsonDailyCalories()
         pass
         
-    
     def resetUserData(self):
         self.todayCaloriesAmount = 0
+        self.caloriesAmount = 0
         self.todayDifferentFoodsDict = dict()
         self.sexData = None
         self.heightData = 0
@@ -318,7 +316,6 @@ class FoodMainWindow(QMainWindow):
         self.enteredFood = ""
         self.foodAmount = 0
         self.bmr = 0
-
 
     def resetToday(self):
         self.resetUserData()
@@ -375,6 +372,11 @@ class FoodMainWindow(QMainWindow):
         self.resetActivitiesButton.setVisible(True)
 
 
+    def zeroDivisionActivities(self):
+        self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
+        self.deactivateActivityLayoutsAtStart()
+
+
     #method which count all need to define estimating time 
     def countSpeed(self, activity):
         #check if the value is list or float(if a speed is a crucial factor to burn calories)
@@ -398,10 +400,7 @@ class FoodMainWindow(QMainWindow):
                 
         #dividing by zero is due to a lack of user data
         except ZeroDivisionError:
-            self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
-            self.deactivateActivityLayoutsAtStart()
-            self.activityLayoutWidget.setVisible(False)
-            self.confirmActivity.setVisible(False)
+            self.zeroDivisionActivities()
 
 
     def sliderChanged(self):
@@ -411,8 +410,7 @@ class FoodMainWindow(QMainWindow):
             slopeFunction = getSlopeFromCorrectSpeedInterval(self.listSpeeds, self.currentSpeed)
             self.countAndPrintEstimatingTime(slopeFunction)
         except ZeroDivisionError:
-            self.createAndPrintMessageBox("No user data", "Please enter user data before looking for sport activites")
-            self.deactivateActivityLayoutsAtStart()
+            self.zeroDivisionActivities()
         
         
     def startResetActivities(self):
